@@ -1,0 +1,58 @@
+# Secrets and environment
+.env
+.env.*
+!.env.example
+auth.json
+.npmrc
+.pypirc
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# Laravel runtime files
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+/bootstrap/cache/
+
+# Cache and temporary files
+.phpunit.cache/
+.cache/
+tmp/
+temp/
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# IDE and editor
+.idea/
+.vscode/
+
+# Git metadata
+.git/
+
+# Build output
+/public/build/
+/public/hot
+/dist/
+/coverage/
+
+# Database dumps and backups
+*.sql
+*.sql.gz
+*.dump
+*.sqlite
+*.sqlite3
+/backups/
