@@ -8,6 +8,7 @@ use App\Models\OrderStatusHistory;
 use App\Models\ProductVariant;
 use App\Models\ShippingRate;
 use App\Models\User;
+use App\Services\InventoryService;
 use Faker\Factory;
 // Tạo dữ liệu đơn hàng mẫu phục vụ kiểm thử và demo.
 
@@ -22,7 +23,7 @@ class DemoOrderSeeder extends Seeder
      * User = các tài khoản @demo.local (từ DemoUserSeeder).
      * Idempotent: nếu đã có order của demo user → skip.
      */
-    public function run(): void
+    public function run(InventoryService $inventoryService, DemoOrderInventory $demoOrderInventory): void
     {
         $demoUserIds = User::where('email', 'like', '%@demo.local')->pluck('id')->all();
 
@@ -71,7 +72,7 @@ class DemoOrderSeeder extends Seeder
         $created = 0;
 
         DB::transaction(function () use (
-            $demoUserIds, $faker, $variants, $rates, $statusPool,
+            $demoUserIds, $faker, $variants, $rates, $statusPool, $inventoryService, $demoOrderInventory,
             $totalOrders, $daysBack, &$created
         ) {
             for ($i = 0; $i < $totalOrders; $i++) {
@@ -183,6 +184,7 @@ class DemoOrderSeeder extends Seeder
                     ]);
                 }
 
+                $demoOrderInventory->deduct($order, $inventoryService);
                 $this->recordHistory($order, $status, $placedAt);
                 $created++;
             }

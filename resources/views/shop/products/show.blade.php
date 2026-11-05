@@ -16,16 +16,43 @@
         / <span class="text-gray-700">{{ $product->name }}</span>
     </nav>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+    <div
+        class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10"
+        x-data="{
+            variants: @js($variantOptions),
+            selectedVariantId: @js($selectedVariantId),
+            quantity: 1,
+            mainImage: @js($initialImage),
+            defaultImage: @js($product->images->firstWhere('is_primary', true)?->url ?? $product->images->first()?->url),
+            get selectedVariant() {
+                return this.variants.find((variant) => variant.id === Number(this.selectedVariantId)) ?? null;
+            },
+            get canAddToCart() {
+                return this.variants.length > 0
+                    ? this.selectedVariant !== null
+                    : @js(! $hasVariants);
+            },
+            selectVariant(id) {
+                this.selectedVariantId = id;
+                this.mainImage = this.selectedVariant?.image ?? this.defaultImage;
+                if (this.selectedVariant?.stock > 0) {
+                    this.quantity = Math.min(this.quantity, this.selectedVariant.stock);
+                }
+            },
+            selectImage(event) {
+                this.mainImage = event.currentTarget.dataset.image;
+            },
+        }"
+    >
         <div>
-            @php $main = $product->images->firstWhere('is_primary', true) ?? $product->images->first(); @endphp
             <div
                 class="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3"
             >
-                @if ($main)
+                @if ($initialImage)
                     <img
                         id="mainImg"
-                        src="{{ $main->url }}"
+                        src="{{ $initialImage }}"
+                        x-bind:src="mainImage"
                         class="w-full h-full object-cover"
                     />
                 @else
@@ -42,7 +69,8 @@
                     @foreach ($product->images as $img)
                         <button
                             type="button"
-                            onclick="document.getElementById('mainImg').src='{{ $img->url }}'"
+                            data-image="{{ $img->url }}"
+                            x-on:click="selectImage($event)"
                             class="aspect-square rounded border overflow-hidden hover:border-indigo-500"
                         >
                             <img
@@ -69,43 +97,28 @@
             </div>
 
             <div class="bg-gray-50 rounded-xl p-4 mb-5">
-                @if ($product->is_on_sale)
-                    <div class="text-sm text-gray-400 line-through">
-                        {{ number_format($product->price) }}đ
-                    </div>
-                    <div class="text-3xl font-bold text-red-600">
-                        {{ number_format($product->sale_price) }}đ
-                    </div>
-                @else
-                    <div class="text-3xl font-bold text-red-600">
-                        {{ number_format($product->price) }}đ
-                    </div>
-                @endif
+                <div
+                    class="text-sm text-gray-400 line-through"
+                    x-show="selectedVariant ? selectedVariant.isOnSale : @js($product->is_on_sale)"
+                    x-text="selectedVariant ? selectedVariant.originalPriceLabel : @js(number_format($product->price).'đ')"
+                >
+                    {{ number_format($selectedVariant['price'] ?? $product->price) }}đ
+                </div>
+                <div
+                    class="text-3xl font-bold text-red-600"
+                    x-text="selectedVariant ? (selectedVariant.salePriceLabel ?? selectedVariant.priceLabel) : @js(number_format($product->sale_price ?? $product->price).'đ')"
+                >
+                    {{ number_format($selectedVariant['salePrice'] ?? $selectedVariant['price'] ?? $product->sale_price ?? $product->price) }}đ
+                </div>
             </div>
 
             <p class="text-sm text-gray-700 mb-5">{{ $product->short_description }}</p>
-
-            @if ($product->variants->count())
-                <div class="mb-5">
-                    <div class="text-sm font-medium mb-2">Phân loại</div>
-                    <div class="flex flex-wrap gap-2">
-                        @foreach ($product->variants as $v)
-                            <button
-                                type="button"
-                                class="px-3 py-1.5 border rounded-lg text-sm hover:border-indigo-500"
-                            >
-                                {{ $v->name }}
-                            </button>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
 
             <div class="flex gap-3 mb-5">
                 <form
                     method="POST"
                     action="{{ route('cart.store') }}"
-                    class="flex gap-3 mb-5"
+                    class="flex flex-wrap gap-3 mb-5"
                 >
                     @csrf
                     <input
@@ -113,27 +126,48 @@
                         name="product_id"
                         value="{{ $product->id }}"
                     />
-                    @if ($product->variants->count())
-                        <select
+                    @if ($variantOptions->isNotEmpty())
+                        <input
+                            type="hidden"
                             name="variant_id"
-                            class="border rounded-lg px-3 py-3 text-sm"
-                        >
-                            @foreach ($product->variants as $v)
-                                <option value="{{ $v->id }}">
-                                    {{ $v->name }} — {{ number_format($v->final_price) }}đ
-                                </option>
-                            @endforeach
-                        </select>
+                            x-bind:value="selectedVariantId"
+                        />
                     @endif
+
+                    @if ($variantOptions->count() > 1)
+                        <div class="mb-2 w-full">
+                            <div class="text-sm font-medium mb-2">Phân loại</div>
+                            <div class="flex flex-wrap gap-2">
+                                <template x-for="variant in variants" :key="variant.id">
+                                    <button
+                                        type="button"
+                                        x-on:click="selectVariant(variant.id)"
+                                        x-bind:class="selectedVariantId === variant.id
+                                            ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                                            : 'border-gray-300 text-gray-700 hover:border-indigo-500'"
+                                        class="px-3 py-1.5 border rounded-lg text-sm"
+                                    >
+                                        <span x-text="variant.name"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    @endif
+
                     <input
                         type="number"
                         name="quantity"
                         value="1"
                         min="1"
                         max="99"
+                        x-model.number="quantity"
+                        x-bind:max="selectedVariant ? Math.min(99, selectedVariant.stock) : 99"
+                        x-bind:disabled="!canAddToCart"
                         class="w-20 border rounded-lg px-3 py-3 text-sm text-center"
                     />
                     <button
+                        type="submit"
+                        x-bind:disabled="!canAddToCart"
                         class="flex-1 px-5 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700"
                     >
                         Thêm vào giỏ
@@ -170,12 +204,21 @@
             </div>
 
             <div class="text-sm text-gray-500 space-y-1">
-                @if ($product->weight_gram)
-                    <div>Cân nặng: {{ $product->weight_gram }}g</div>
-                @endif
-                @if ($product->sku)
-                    <div>Mã SP: {{ $product->sku }}</div>
-                @endif
+                <div
+                    x-show="selectedVariant ? selectedVariant.weightGram !== null : @js($product->weight_gram !== null)"
+                >
+                    Cân nặng:
+                    <span x-text="selectedVariant ? selectedVariant.weightGram : @js($product->weight_gram)">{{ $selectedVariant['weightGram'] ?? $product->weight_gram }}</span>g
+                </div>
+                <div x-show="selectedVariant ? Boolean(selectedVariant.sku) : @js((bool) $product->sku)">
+                    Mã SP: <span x-text="selectedVariant ? selectedVariant.sku : @js($product->sku)">{{ $selectedVariant['sku'] ?? $product->sku }}</span>
+                </div>
+                <div
+                    x-show="variants.length"
+                    x-text="selectedVariant && selectedVariant.stock > 0
+                        ? 'Còn hàng: ' + selectedVariant.stock
+                        : 'Hết hàng'"
+                ></div>
             </div>
             <div class="mt-5 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p class="text-sm font-medium text-blue-800 mb-2">📩 Nhận thông báo khi có hàng / giảm giá</p>

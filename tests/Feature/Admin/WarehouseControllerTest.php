@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\Warehouse;
 use Database\Seeders\RolePermissionSeeder;
@@ -140,6 +141,30 @@ class WarehouseControllerTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseMissing('warehouses', ['id' => $w->id]);
+    }
+
+    public function test_destroy_is_blocked_when_stock_movement_history_exists(): void
+    {
+        $admin = $this->admin();
+        $warehouse = Warehouse::create(['name' => 'W', 'code' => 'W', 'is_active' => true]);
+        $variant = $this->makeVariant();
+        $movement = StockMovement::create([
+            'warehouse_id' => $warehouse->id,
+            'product_variant_id' => $variant->id,
+            'type' => 'in',
+            'quantity' => 1,
+            'stock_before' => 0,
+            'stock_after' => 1,
+            'reference_type' => 'manual',
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.warehouses.destroy', $warehouse))
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertModelExists($warehouse);
+        $this->assertModelExists($movement);
     }
 
     private function admin(): User

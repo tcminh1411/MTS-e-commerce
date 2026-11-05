@@ -20,8 +20,8 @@ return new class extends Migration
             $table->string('guest_email')->nullable();
 
             // Trạng thái
-            $table->string('status', 30)->default('pending');          // pending|confirmed|processing|shipped|delivered|cancelled|refunded
-            $table->string('payment_status', 30)->default('unpaid');   // unpaid|paid|failed|refunded
+            $table->string('status', 30)->default('pending');          // pending|confirmed|shipping|completed|cancelled
+            $table->string('payment_status', 30)->default('unpaid');   // unpaid|paid|refunded
             $table->string('payment_method', 20)->default('cod');      // cod|vnpay
 
             // Tiền (VND, đơn vị đồng, dùng unsignedBigInteger)

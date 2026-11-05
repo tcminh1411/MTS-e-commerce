@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** Đại diện dữ liệu kho hàng và các quan hệ liên quan. */
 class Warehouse extends Model
@@ -19,12 +20,12 @@ class Warehouse extends Model
         'is_active' => 'boolean',
     ];
 
-    public function inventories()
+    public function inventories(): HasMany
     {
         return $this->hasMany(Inventory::class);
     }
 
-    public function movements()
+    public function movements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
     }

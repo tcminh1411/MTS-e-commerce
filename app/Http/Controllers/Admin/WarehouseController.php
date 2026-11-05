@@ -120,6 +120,12 @@ class WarehouseController extends Controller
                 ->with('error', 'Không thể xóa kho "'.$warehouse->name.'" vì vẫn còn tồn kho. Vui lòng chuyển hoặc xuất hết hàng trước.');
         }
 
+        if ($warehouse->movements()->exists()) {
+            return redirect()
+                ->route('admin.warehouses.index')
+                ->with('error', 'Không thể xóa kho "'.$warehouse->name.'" vì vẫn còn lịch sử biến động kho.');
+        }
+
         $name = $warehouse->name;
         $warehouse->delete();
 

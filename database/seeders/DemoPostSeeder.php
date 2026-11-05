@@ -103,7 +103,7 @@ class DemoPostSeeder extends Seeder
                 'status' => Post::STATUS_PUBLISHED,
                 'published_at' => $now->copy()->subDays(7),
                 'body' => $makeBody(
-                    'Nhân dịp tháng 10, ShopDemo triển khai chương trình khuyến mãi lớn với hàng ngàn sản phẩm giảm giá.',
+                    'Nhân dịp tháng 10, MTS triển khai chương trình khuyến mãi lớn với hàng ngàn sản phẩm giảm giá.',
                     [
                         ['h' => 'Ưu đãi chính', 'ul' => ['Giảm 30% toàn bộ phụ kiện', 'Giảm 20% sạc dự phòng Anker', 'Giảm 15% tai nghe Sony, JBL', 'Freeship cho đơn từ 500k']],
                         ['h' => 'Thời gian', 'p' => 'Từ 01/10 đến hết 31/10/2026.'],

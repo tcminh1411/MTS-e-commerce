@@ -34,7 +34,8 @@ class CheckoutController extends Controller
                 ->with('error', 'Giỏ hàng đang trống, vui lòng thêm sản phẩm trước khi thanh toán.');
         }
 
-        $cart->load(['items.product', 'items.variant']);
+        $this->cartService->refreshPrices($cart);
+        $cart->loadMissing(['items.product', 'items.variant']);
 
         // Tính subtotal + tổng weight để filter rate
         $subtotal = (int) $cart->items->sum(fn ($i) => $i->unit_price * $i->quantity);

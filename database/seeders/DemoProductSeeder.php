@@ -571,7 +571,8 @@ class DemoProductSeeder extends Seeder
         ],
         'gaming-phone' => [
             '1542751371-adc38448a05e',
-            '1552820728-8b83bb6b0513',
+            '1598327105666-5b89351aff97',
+            '1511707171634-5f897ff02aa9',
         ],
         'feature-phone' => [
             '1520923642038-b4259acecbd7',

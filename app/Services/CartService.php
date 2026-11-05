@@ -137,7 +137,7 @@ class CartService
 
     public function refreshPrices(Cart $cart): void
     {
-        $cart->load('items.product', 'items.variant');
+        $cart->loadMissing('items.product', 'items.variant');
         foreach ($cart->items as $item) {
             $newPrice = $item->variant?->final_price ?? $item->product?->final_price;
             if ($newPrice !== null && (float) $item->unit_price !== (float) $newPrice) {

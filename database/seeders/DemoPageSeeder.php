@@ -15,13 +15,13 @@ class DemoPageSeeder extends Seeder
             [
                 'slug' => 'gioi-thieu',
                 'title' => 'Giới thiệu',
-                'meta_title' => 'Giới thiệu về ShopDemo',
-                'meta_description' => 'ShopDemo — website thương mại điện tử B2C, đồ án tốt nghiệp.',
+                'meta_title' => 'Giới thiệu về MTS',
+                'meta_description' => 'MTS — website thương mại điện tử B2C, đồ án tốt nghiệp.',
                 'show_in_footer' => true,
                 'footer_sort' => 1,
                 'body' => <<<'HTML'
-<h2>Về ShopDemo</h2>
-<p>ShopDemo là website thương mại điện tử B2C được xây dựng trên nền tảng <strong>Laravel 13</strong>, phục vụ nhu cầu mua sắm trực tuyến các sản phẩm công nghệ: điện thoại, laptop, phụ kiện.</p>
+<h2>Về MTS</h2>
+<p>MTS là website thương mại điện tử B2C được xây dựng trên nền tảng <strong>Laravel 13</strong>, phục vụ nhu cầu mua sắm trực tuyến các sản phẩm công nghệ: điện thoại, laptop, phụ kiện.</p>
 
 <h3>Sứ mệnh</h3>
 <p>Mang đến trải nghiệm mua sắm <em>đơn giản — nhanh chóng — an toàn</em> cho khách hàng Việt Nam.</p>
@@ -44,13 +44,13 @@ HTML,
             [
                 'slug' => 'dieu-khoan',
                 'title' => 'Điều khoản sử dụng',
-                'meta_title' => 'Điều khoản sử dụng — ShopDemo',
-                'meta_description' => 'Điều khoản và điều kiện sử dụng website ShopDemo.',
+                'meta_title' => 'Điều khoản sử dụng — MTS',
+                'meta_description' => 'Điều khoản và điều kiện sử dụng website MTS.',
                 'show_in_footer' => true,
                 'footer_sort' => 2,
                 'body' => <<<'HTML'
 <h2>Điều khoản sử dụng</h2>
-<p>Khi truy cập và sử dụng website ShopDemo, bạn đồng ý tuân thủ các điều khoản dưới đây.</p>
+<p>Khi truy cập và sử dụng website MTS, bạn đồng ý tuân thủ các điều khoản dưới đây.</p>
 
 <h3>1. Tài khoản người dùng</h3>
 <ul>
@@ -62,7 +62,7 @@ HTML,
 <h3>2. Đặt hàng và thanh toán</h3>
 <ul>
     <li>Đơn hàng chỉ được xác nhận khi thanh toán thành công (VNPay) hoặc xác nhận COD.</li>
-    <li>ShopDemo có quyền hủy đơn nếu phát hiện gian lận.</li>
+    <li>MTS có quyền hủy đơn nếu phát hiện gian lận.</li>
     <li>Giá sản phẩm đã bao gồm VAT, chưa bao gồm phí vận chuyển.</li>
 </ul>
 
@@ -74,23 +74,23 @@ HTML,
 </ul>
 
 <h3>4. Quyền sở hữu trí tuệ</h3>
-<p>Toàn bộ nội dung, hình ảnh, logo trên website thuộc quyền sở hữu của ShopDemo. Nghiêm cấm sao chép dưới mọi hình thức.</p>
+<p>Toàn bộ nội dung, hình ảnh, logo trên website thuộc quyền sở hữu của MTS. Nghiêm cấm sao chép dưới mọi hình thức.</p>
 
 <h3>5. Thay đổi điều khoản</h3>
-<p>ShopDemo có quyền cập nhật điều khoản bất kỳ lúc nào. Phiên bản mới có hiệu lực ngay khi đăng tải.</p>
+<p>MTS có quyền cập nhật điều khoản bất kỳ lúc nào. Phiên bản mới có hiệu lực ngay khi đăng tải.</p>
 HTML,
                 'is_active' => true,
             ],
             [
                 'slug' => 'bao-mat',
                 'title' => 'Chính sách bảo mật',
-                'meta_title' => 'Chính sách bảo mật — ShopDemo',
-                'meta_description' => 'Chính sách bảo mật thông tin khách hàng của ShopDemo.',
+                'meta_title' => 'Chính sách bảo mật — MTS',
+                'meta_description' => 'Chính sách bảo mật thông tin khách hàng của MTS.',
                 'show_in_footer' => true,
                 'footer_sort' => 3,
                 'body' => <<<'HTML'
 <h2>Chính sách bảo mật</h2>
-<p>ShopDemo cam kết bảo vệ thông tin cá nhân của khách hàng theo quy định của pháp luật Việt Nam.</p>
+<p>MTS cam kết bảo vệ thông tin cá nhân của khách hàng theo quy định của pháp luật Việt Nam.</p>
 
 <h3>1. Thông tin thu thập</h3>
 <ul>

@@ -14,6 +14,7 @@ use App\Models\ShippingRate;
 use App\Models\StockAlert;
 use App\Models\User;
 use App\Models\Wishlist;
+use App\Services\InventoryService;
 // Tạo dữ liệu cá nhân mẫu phục vụ môi trường demo.
 
 use Illuminate\Database\Seeder;
@@ -29,7 +30,7 @@ class DemoPersonalDataSeeder extends Seeder
         'shipping', 'shipping', 'completed', 'cancelled',
     ];
 
-    public function run(): void
+    public function run(InventoryService $inventoryService, DemoOrderInventory $demoOrderInventory): void
     {
         $admin = User::where('email', 'admin@example.com')->first();
         if (! $admin) {
@@ -77,9 +78,9 @@ class DemoPersonalDataSeeder extends Seeder
         $this->seedWishlist($tcminh, 8);
         $this->seedWishlist($tcminh1411, 8);
 
-        $adminOrders = $this->seedOrders($admin, self::STATUSES_ADMIN, 'ADM');
-        $tcminhOrders = $this->seedOrders($tcminh, self::STATUSES_TCMINH, 'TCM');
-        $tcminh1411Orders = $this->seedOrders($tcminh1411, self::STATUSES_TCMINH, 'TC11');
+        $adminOrders = $this->seedOrders($admin, self::STATUSES_ADMIN, 'ADM', $inventoryService, $demoOrderInventory);
+        $tcminhOrders = $this->seedOrders($tcminh, self::STATUSES_TCMINH, 'TCM', $inventoryService, $demoOrderInventory);
+        $tcminh1411Orders = $this->seedOrders($tcminh1411, self::STATUSES_TCMINH, 'TC11', $inventoryService, $demoOrderInventory);
 
         $this->seedReviews($admin, $adminOrders);
         $this->seedReviews($tcminh, $tcminhOrders);
@@ -153,8 +154,13 @@ class DemoPersonalDataSeeder extends Seeder
         }
     }
 
-    private function seedOrders(User $user, array $statuses, string $prefix): array
-    {
+    private function seedOrders(
+        User $user,
+        array $statuses,
+        string $prefix,
+        InventoryService $inventoryService,
+        DemoOrderInventory $demoOrderInventory
+    ): array {
         $orders = [];
         $rates = ShippingRate::all();
         if ($rates->isEmpty()) {
@@ -240,6 +246,8 @@ class DemoPersonalDataSeeder extends Seeder
                     'line_total' => $row['line'],
                 ]);
             }
+
+            $demoOrderInventory->deduct($order, $inventoryService);
 
             OrderStatusHistory::create([
                 'order_id' => $order->id,

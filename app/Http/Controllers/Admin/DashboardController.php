@@ -21,17 +21,21 @@ class DashboardController extends Controller
         $paidStatuses = ['completed', 'shipping'];
 
         // ===== 1. KPI CARDS =====
-        $totalRevenue = (int) Order::whereIn('status', $paidStatuses)->sum('total');
+        $totalRevenue = (int) Order::whereIn('status', $paidStatuses)
+            ->where('payment_status', '!=', 'refunded')
+            ->sum('total');
         $totalOrders = Order::count();
         $totalUsers = User::count();
         $totalProductsSold = (int) OrderItem::whereHas('order', function ($q) use ($paidStatuses) {
-            $q->whereIn('status', $paidStatuses);
+            $q->whereIn('status', $paidStatuses)
+                ->where('payment_status', '!=', 'refunded');
         })->sum('quantity');
 
         // ===== 2. DOANH THU 30 NGÀY GẦN NHẤT =====
         $startDate = Carbon::today()->subDays(29);
 
         $revenueRaw = Order::whereIn('status', $paidStatuses)
+            ->where('payment_status', '!=', 'refunded')
             ->where('placed_at', '>=', $startDate)
             ->selectRaw('DATE(placed_at) as d, SUM(total) as total')
             ->groupBy('d')
@@ -68,7 +72,8 @@ class DashboardController extends Controller
         // ===== 4. TOP 5 SẢN PHẨM BÁN CHẠY =====
         $topProducts = OrderItem::selectRaw('product_name, SUM(quantity) as total_qty')
             ->whereHas('order', function ($q) use ($paidStatuses) {
-                $q->whereIn('status', $paidStatuses);
+                $q->whereIn('status', $paidStatuses)
+                    ->where('payment_status', '!=', 'refunded');
             })
             ->groupBy('product_name')
             ->orderByDesc('total_qty')

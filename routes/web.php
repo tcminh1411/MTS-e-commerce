@@ -161,7 +161,9 @@ Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{post}', [BlogController::class, 'show'])->name('blog.show');
 
 // Chatbot AI
-Route::post('/chatbot', [ChatbotController::class, 'reply'])->name('chatbot.reply');
+Route::post('/chatbot', [ChatbotController::class, 'reply'])
+    ->middleware('throttle:10,1')
+    ->name('chatbot.reply');
 /*
 10. KHU VỰC QUẢN TRỊ
 Yêu cầu đăng nhập và vai trò admin.

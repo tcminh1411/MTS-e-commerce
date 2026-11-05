@@ -38,6 +38,12 @@ class ProductRequest extends FormRequest
             'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'remove_images' => ['nullable', 'array'],
             'remove_images.*' => ['integer', 'exists:product_images,id'],
+            'delete_variant_ids' => ['sometimes', 'array'],
+            'delete_variant_ids.*' => [
+                'integer',
+                'distinct',
+                Rule::exists('product_variants', 'id')->where('product_id', $id),
+            ],
         ];
     }
 }

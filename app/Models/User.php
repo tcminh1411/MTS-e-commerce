@@ -70,6 +70,16 @@ class User extends Authenticatable
         return $this->hasMany(Order::class);
     }
 
+    public function returnRequests(): HasMany
+    {
+        return $this->hasMany(ReturnRequest::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class, 'created_by_user_id');
+    }
+
     public function reviews()
     {
         return $this->hasMany(Review::class);

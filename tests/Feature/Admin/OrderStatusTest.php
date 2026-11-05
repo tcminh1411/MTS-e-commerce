@@ -60,6 +60,17 @@ class OrderStatusTest extends TestCase
             'reference_type' => 'order',
             'reference_id' => $order->id,
         ]);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.orders.updateStatus', $order), [
+                'to_status' => 'completed',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('completed', $order->fresh()->status);
+        $this->assertSame(8, $selectedWarehouse->inventories()->first()->quantity);
+        $this->assertDatabaseCount('stock_movements', 1);
     }
 
     public function test_admin_moves_existing_order_reservation_to_the_selected_shipping_warehouse(): void
@@ -145,6 +156,91 @@ class OrderStatusTest extends TestCase
 
         $this->assertSame('pending', $order->fresh()->status);
         $this->assertSame(1, $warehouse->inventories()->first()->quantity);
+        $this->assertDatabaseMissing('stock_movements', [
+            'reference_type' => 'order',
+            'reference_id' => $order->id,
+        ]);
+    }
+
+    public function test_order_with_item_missing_variant_cannot_be_shipped(): void
+    {
+        $admin = $this->admin();
+        $order = $this->makeOrderWithItem();
+        $warehouse = $this->makeWarehouse('WH-NO-VARIANT');
+        $variantId = $order->items->first()->variant_id;
+        $this->makeInventory($warehouse, $order->items->first()->variant, 5);
+        $order->items->first()->update(['variant_id' => null]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.orders.show', $order))
+            ->assertOk()
+            ->assertSee('Không thể giao đơn')
+            ->assertSee('Đơn cần có biến thể hợp lệ')
+            ->assertSee('Test product');
+
+        $this->actingAs($admin)
+            ->patch(route('admin.orders.updateStatus', $order), [
+                'to_status' => 'shipping',
+                'warehouse_id' => $warehouse->id,
+            ])
+            ->assertSessionHasErrors('warehouse_id');
+
+        $this->assertSame('pending', $order->fresh()->status);
+        $this->assertSame(5, $warehouse->inventories()->first()->quantity);
+        $this->assertDatabaseMissing('stock_movements', [
+            'product_variant_id' => $variantId,
+            'reference_type' => 'order',
+            'reference_id' => $order->id,
+        ]);
+    }
+
+    public function test_order_with_soft_deleted_variant_shows_admin_warning_and_cannot_ship(): void
+    {
+        $admin = $this->admin();
+        $order = $this->makeOrderWithItem();
+        $warehouse = $this->makeWarehouse('WH-DELETED-VARIANT');
+        $variant = $order->items->first()->variant;
+        $this->makeInventory($warehouse, $variant, 5);
+        $variant->delete();
+
+        $this->actingAs($admin)
+            ->get(route('admin.orders.show', $order))
+            ->assertOk()
+            ->assertSee('Không thể giao đơn')
+            ->assertSee('Test product');
+
+        $this->actingAs($admin)
+            ->patch(route('admin.orders.updateStatus', $order), [
+                'to_status' => 'shipping',
+                'warehouse_id' => $warehouse->id,
+            ])
+            ->assertSessionHasErrors('warehouse_id');
+
+        $this->assertSame('pending', $order->fresh()->status);
+        $this->assertSame(5, $warehouse->inventories()->first()->quantity);
+        $this->assertDatabaseMissing('stock_movements', [
+            'reference_type' => 'order',
+            'reference_id' => $order->id,
+        ]);
+    }
+
+    public function test_admin_cannot_complete_order_before_stock_is_deducted(): void
+    {
+        $admin = $this->admin();
+        $order = $this->makeOrderWithItem();
+        $warehouse = $this->makeWarehouse('WH-NOT-SHIPPED');
+        $this->makeInventory($warehouse, $order->items->first()->variant, 5);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.orders.updateStatus', $order), [
+                'to_status' => 'completed',
+            ])
+            ->assertSessionHasErrors([
+                'to_status' => 'Chỉ có thể hoàn thành đơn sau khi đã chuyển sang đang giao và trừ tồn kho.',
+            ]);
+
+        $this->assertSame('pending', $order->fresh()->status);
+        $this->assertSame(5, $warehouse->inventories()->first()->quantity);
         $this->assertDatabaseMissing('stock_movements', [
             'reference_type' => 'order',
             'reference_id' => $order->id,

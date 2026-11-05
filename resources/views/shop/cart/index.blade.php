@@ -34,23 +34,32 @@
                             <tr>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-3">
-                                        @if ($item->product->thumbnail)
-                                            <img
-                                                src="{{ $item->product->thumbnail }}"
-                                                class="w-14 h-14 object-cover rounded"
-                                            />
-                                        @endif
+                                        <img
+                                            src="{{ $item->product?->thumbnail ?? asset('images/product-placeholder.svg') }}"
+                                            alt="{{ $item->product?->name ?? 'Sản phẩm đã xóa' }}"
+                                            class="w-14 h-14 object-cover rounded"
+                                        />
                                         <div>
-                                            <a
-                                                href="{{ route('products.show', $item->product->slug) }}"
-                                                class="font-medium hover:text-indigo-600"
-                                                >{{ $item->product->name }}</a
-                                            >
+                                            @if ($item->product)
+                                                <a
+                                                    href="{{ route('products.show', $item->product->slug) }}"
+                                                    class="font-medium hover:text-indigo-600"
+                                                    >{{ $item->product->name }}</a
+                                                >
+                                            @else
+                                                <span class="font-medium text-gray-500">
+                                                    Sản phẩm đã xóa
+                                                </span>
+                                            @endif
                                             @if ($item->variant)
                                                 <div
                                                     class="text-xs text-gray-500"
                                                 >
                                                     {{ $item->variant->name }}
+                                                </div>
+                                            @elseif ($item->variant_id)
+                                                <div class="text-xs text-gray-500">
+                                                    Phân loại đã xóa
                                                 </div>
                                             @endif
                                         </div>

@@ -5,11 +5,12 @@ namespace Database\Seeders;
 use App\Models\Order;
 use App\Models\ReturnRequest;
 use App\Models\User;
+use App\Services\InventoryService;
 use Illuminate\Database\Seeder;
 
 class DemoReturnRequestSeeder extends Seeder
 {
-    public function run(): void
+    public function run(InventoryService $inventoryService): void
     {
         $eligibleOrders = Order::query()
             ->where('status', 'completed')
@@ -86,9 +87,10 @@ class DemoReturnRequestSeeder extends Seeder
                 $data['refunded_at'] = $requestedAt->copy()->addDays(4);
             }
 
-            ReturnRequest::create($data);
+            $returnRequest = ReturnRequest::create($data);
 
             if ($status === 'refunded') {
+                $inventoryService->restoreReturnedOrder($order, $returnRequest);
                 $order->update(['payment_status' => 'refunded']);
             }
 

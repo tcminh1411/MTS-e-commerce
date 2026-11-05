@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /** Đại diện dữ liệu biến thể sản phẩm và các quan hệ liên quan. */
@@ -33,9 +35,19 @@ class ProductVariant extends Model
         'stock' => 'integer',
     ];
 
-    public function product()
+    public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class, 'variant_id');
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImage::class, 'variant_id');
     }
 
     public function attributeValues()

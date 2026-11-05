@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** Đại diện dữ liệu mức phí vận chuyển và các quan hệ liên quan. */
 class ShippingRate extends Model
@@ -32,6 +33,11 @@ class ShippingRate extends Model
     public function zone(): BelongsTo
     {
         return $this->belongsTo(ShippingZone::class, 'zone_id');
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
     }
 
     /**

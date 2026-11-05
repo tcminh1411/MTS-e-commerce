@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Shop;
 use App\Http\Controllers\Controller;
 use App\Models\CartItem;
 use App\Models\Product;
-use App\Models\ProductVariant;
 use App\Services\CartService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 /** Xử lý các yêu cầu liên quan đến giỏ hàng. */
 class CartController extends Controller
@@ -27,14 +27,31 @@ class CartController extends Controller
     {
         $data = $request->validate([
             'product_id' => ['required', 'exists:products,id'],
-            'variant_id' => ['nullable', 'exists:product_variants,id'],
+            'variant_id' => ['nullable', 'integer'],
             'quantity' => ['required', 'integer', 'min:1', 'max:99'],
         ]);
 
         $product = Product::findOrFail($data['product_id']);
-        $variant = isset($data['variant_id'])
-            ? ProductVariant::findOrFail($data['variant_id'])
-            : null;
+        $activeVariants = $product->variants()->where('status', 'active');
+        $variant = null;
+
+        if ($product->variants()->exists()) {
+            if (empty($data['variant_id'])) {
+                throw ValidationException::withMessages([
+                    'variant_id' => 'Vui lòng chọn phân loại sản phẩm.',
+                ]);
+            }
+        }
+
+        if (! empty($data['variant_id'])) {
+            $variant = $activeVariants->whereKey($data['variant_id'])->first();
+
+            if (! $variant) {
+                throw ValidationException::withMessages([
+                    'variant_id' => 'Phân loại không hợp lệ cho sản phẩm này.',
+                ]);
+            }
+        }
 
         $this->cart->add($product, $variant, $data['quantity']);
 

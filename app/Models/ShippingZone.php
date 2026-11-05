@@ -30,6 +30,11 @@ class ShippingZone extends Model
         return $this->hasMany(ShippingRate::class, 'zone_id');
     }
 
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
     /** Scope: chỉ zone đang active, sắp theo sort_order. */
     public function scopeActive($query)
     {

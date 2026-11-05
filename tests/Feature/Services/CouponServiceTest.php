@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\CouponService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -68,9 +69,11 @@ class CouponServiceTest extends TestCase
             'usage_limit_per_user' => 1,
             'used_count' => 0,
         ]);
+        $order = $this->makeOrder($user);
         CouponUsage::create([
             'coupon_id' => $coupon->id,
             'user_id' => $user->id,
+            'order_id' => $order->id,
             'used_at' => now(),
         ]);
         [$cart] = $this->makeCartWithItem(200000, $user);
@@ -216,6 +219,40 @@ class CouponServiceTest extends TestCase
             'coupon_id' => $coupon->id,
             'user_id' => $user->id,
             'order_id' => $order->id,
+        ]);
+    }
+
+    public function test_order_can_have_only_one_coupon_usage(): void
+    {
+        $coupon = $this->makeCoupon(code: 'ONCE');
+        $user = User::factory()->create();
+        $order = $this->makeOrder($user);
+        $usage = CouponUsage::create([
+            'coupon_id' => $coupon->id,
+            'user_id' => $user->id,
+            'order_id' => $order->id,
+            'used_at' => now(),
+        ]);
+
+        $this->assertSame($usage->id, $order->couponUsage->id);
+
+        $this->expectException(QueryException::class);
+        CouponUsage::create([
+            'coupon_id' => $coupon->id,
+            'user_id' => $user->id,
+            'order_id' => $order->id,
+            'used_at' => now(),
+        ]);
+    }
+
+    public function test_coupon_usage_requires_an_order(): void
+    {
+        $coupon = $this->makeCoupon(code: 'ORDER-REQUIRED');
+
+        $this->expectException(QueryException::class);
+        CouponUsage::create([
+            'coupon_id' => $coupon->id,
+            'used_at' => now(),
         ]);
     }
 

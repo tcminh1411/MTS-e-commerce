@@ -4,9 +4,11 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Coupon;
 use App\Models\CouponUsage;
+use App\Models\Order;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class CouponControllerTest extends TestCase
@@ -163,8 +165,23 @@ class CouponControllerTest extends TestCase
             'code' => 'USED', 'name' => 'U', 'type' => 'fixed', 'value' => 1000,
             'used_count' => 1, 'is_active' => true,
         ]);
+        $order = Order::create([
+            'order_number' => 'ORD-'.Str::upper(Str::random(10)),
+            'status' => 'pending',
+            'payment_status' => 'unpaid',
+            'payment_method' => 'cod',
+            'subtotal' => 100000,
+            'discount_amount' => 0,
+            'shipping_fee' => 0,
+            'total' => 100000,
+            'shipping_rate_name' => 'Std',
+            'recipient_name' => 'Test',
+            'recipient_phone' => '0900000000',
+            'shipping_address' => 'Test',
+        ]);
         CouponUsage::create([
             'coupon_id' => $coupon->id,
+            'order_id' => $order->id,
             'used_at' => now(),
         ]);
 

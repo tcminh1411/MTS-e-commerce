@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Services\ProductVariantService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -46,11 +47,15 @@ class ProductController extends Controller
         ]);
     }
 
-    public function store(ProductRequest $request)
+    public function store(ProductRequest $request, ProductVariantService $productVariantService)
     {
-        $product = DB::transaction(function () use ($request) {
+        $product = DB::transaction(function () use ($request, $productVariantService) {
             $data = $this->prepareData($request);
             $product = Product::create($data);
+
+            if ($product->product_type === 'simple') {
+                $productVariantService->ensureDefaultForSimpleProduct($product);
+            }
 
             $this->handleImages($product, $request);
 
@@ -72,15 +77,30 @@ class ProductController extends Controller
         ]);
     }
 
-    public function update(ProductRequest $request, Product $product)
-    {
-        DB::transaction(function () use ($request, $product) {
+    public function update(
+        ProductRequest $request,
+        Product $product,
+        ProductVariantService $productVariantService
+    ) {
+        DB::transaction(function () use ($request, $product, $productVariantService) {
             $product->update($this->prepareData($request, $product));
+
+            if ($variantIds = $request->input('delete_variant_ids', [])) {
+                $product->variants()
+                    ->whereIn('id', $variantIds)
+                    ->get()
+                    ->each
+                    ->delete();
+            }
+
+            if ($product->product_type === 'simple') {
+                $productVariantService->ensureDefaultForSimpleProduct($product);
+            }
 
             if ($ids = $request->input('remove_images', [])) {
                 $toDelete = ProductImage::where('product_id', $product->id)->whereIn('id', $ids)->get();
                 foreach ($toDelete as $img) {
-                    Storage::disk('public')->delete($img->url);
+                    $this->deleteLocalImage($img);
                     $img->delete();
                 }
             }
@@ -96,7 +116,7 @@ class ProductController extends Controller
     {
         DB::transaction(function () use ($product) {
             foreach ($product->images as $img) {
-                Storage::disk('public')->delete($img->url);
+                $this->deleteLocalImage($img);
             }
             $product->delete();
         });
@@ -109,15 +129,19 @@ class ProductController extends Controller
     private function prepareData(ProductRequest $request, ?Product $product = null): array
     {
         $data = $request->validated();
-        unset($data['images'], $data['remove_images']);
+        unset($data['images'], $data['remove_images'], $data['delete_variant_ids']);
+
+        if (! isset($data['product_type'])) {
+            $data['product_type'] = $product?->product_type ?? 'simple';
+        }
 
         if (empty($data['slug'])) {
             $base = Str::slug($data['name']);
             $slug = $base;
-            $i = 1;
+            $i = 0;
             $ignoreId = $product?->id;   // ← gán ra biến int|null
 
-            while (Product::where('slug', $slug)
+            while (Product::withTrashed()->where('slug', $slug)
                 ->when($ignoreId !== null, fn ($q) => $q->where('id', '!=', $ignoreId))
                 ->exists()
             ) {
@@ -158,6 +182,15 @@ class ProductController extends Controller
                 'sort_order' => $startSort + $i + 1,
                 'is_primary' => ! $hasPrimary && $i === 0,
             ]);
+        }
+    }
+
+    private function deleteLocalImage(ProductImage $image): void
+    {
+        $path = $image->getRawOriginal('url');
+
+        if ($path && ! str_starts_with($path, 'http')) {
+            Storage::disk('public')->delete($path);
         }
     }
 }

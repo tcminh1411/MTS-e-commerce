@@ -79,6 +79,11 @@ class Order extends Model
         return $this->hasOne(ReturnRequest::class);
     }
 
+    public function couponUsage(): HasOne
+    {
+        return $this->hasOne(CouponUsage::class);
+    }
+
     public function reviews()
     {
         return $this->hasMany(Review::class);

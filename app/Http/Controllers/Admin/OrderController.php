@@ -77,7 +77,7 @@ class OrderController extends Controller
     {
         $order->load([
             'user:id,full_name,email',
-            'items',
+            'items.variant',
             'shippingZone',
             'shippingRate',
             'statusHistory' => fn ($q) => $q->with('changedBy:id,full_name')->orderBy('id'),
@@ -85,6 +85,11 @@ class OrderController extends Controller
 
         return view('admin.orders.show', [
             'order' => $order,
+            'itemsMissingVariant' => $order->items
+                ->filter(fn ($item) => ! $item->variant_id || ! $item->variant)
+                ->pluck('product_name')
+                ->unique()
+                ->values(),
             'statuses' => self::STATUSES,
             'paymentStatuses' => self::PAYMENT_STATUSES,
             'warehouses' => Warehouse::query()
@@ -122,6 +127,12 @@ class OrderController extends Controller
 
             if ($data['to_status'] === $from) {
                 return false;
+            }
+
+            if ($data['to_status'] === 'completed' && $from !== 'shipping') {
+                throw ValidationException::withMessages([
+                    'to_status' => 'Chỉ có thể hoàn thành đơn sau khi đã chuyển sang đang giao và trừ tồn kho.',
+                ]);
             }
 
             if ($data['to_status'] === 'shipping' && $from !== 'shipping') {

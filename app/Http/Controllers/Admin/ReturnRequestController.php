@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
 use App\Models\ReturnRequest;
+use App\Services\InventoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -108,22 +110,46 @@ class ReturnRequestController extends Controller
         return back()->with('success', 'Đã từ chối yêu cầu trả hàng.');
     }
 
-    public function markRefunded(ReturnRequest $returnRequest): RedirectResponse
-    {
-        if ($returnRequest->status !== 'approved') {
-            return back()->with('error', 'Chỉ có thể đánh dấu hoàn tiền cho yêu cầu đã chấp nhận.');
+    public function markRefunded(
+        ReturnRequest $returnRequest,
+        InventoryService $inventoryService
+    ): RedirectResponse {
+        try {
+            $updated = DB::transaction(function () use ($returnRequest, $inventoryService): bool {
+                $returnRequest = ReturnRequest::query()
+                    ->whereKey($returnRequest->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($returnRequest->status !== 'approved') {
+                    return false;
+                }
+
+                $order = Order::query()
+                    ->whereKey($returnRequest->order_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $inventoryService->restoreReturnedOrder($order, $returnRequest);
+
+                $returnRequest->update([
+                    'status' => 'refunded',
+                    'refunded_at' => now(),
+                ]);
+
+                $order->update([
+                    'payment_status' => 'refunded',
+                ]);
+
+                return true;
+            });
+        } catch (\RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
         }
 
-        DB::transaction(function () use ($returnRequest) {
-            $returnRequest->update([
-                'status' => 'refunded',
-                'refunded_at' => now(),
-            ]);
-
-            $returnRequest->order->update([
-                'payment_status' => 'refunded',
-            ]);
-        });
+        if (! $updated) {
+            return back()->with('error', 'Chỉ có thể đánh dấu hoàn tiền cho yêu cầu đã chấp nhận.');
+        }
 
         return back()->with('success', 'Đã đánh dấu hoàn tiền thành công.');
     }

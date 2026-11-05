@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\ChatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /** Xử lý các yêu cầu liên quan đến trợ lý tư vấn. */
 class ChatbotController extends Controller
@@ -24,9 +25,11 @@ class ChatbotController extends Controller
 
             return response()->json(['ok' => true, 'reply' => $reply]);
         } catch (\Throwable $e) {
+            Log::error('Chatbot reply failed', ['exception' => $e]);
+
             return response()->json([
                 'ok' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Có lỗi xảy ra, vui lòng thử lại.',
             ], 500);
         }
     }

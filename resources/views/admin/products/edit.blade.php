@@ -5,6 +5,7 @@
 @section ('content')
     <div class="bg-white rounded-xl shadow-sm p-6">
         <form
+            id="product-edit-form"
             method="POST"
             action="{{ route('admin.products.update', $product) }}"
             enctype="multipart/form-data"
@@ -17,6 +18,9 @@
     {{-- VARIANTS --}}
     <div class="bg-white rounded-xl shadow-sm p-6 max-w-5xl mt-6">
         <h2 class="font-semibold mb-4">Biến thể sản phẩm</h2>
+        <p class="text-sm text-gray-500 mb-4">
+            Biến thể chỉ bị xoá sau khi bấm Lưu. Bấm Huỷ để giữ nguyên.
+        </p>
 
         @if ($product->variants->count())
             <table class="min-w-full text-sm mb-5">
@@ -32,7 +36,7 @@
                 </thead>
                 <tbody class="divide-y">
                     @foreach ($product->variants as $v)
-                        <tr>
+                        <tr data-variant-row>
                             <td class="px-3 py-2">{{ $v->name }}</td>
                             <td class="px-3 py-2 text-gray-500">
                                 {{ $v->sku }}
@@ -49,19 +53,105 @@
                                 {{ $v->status }}
                             </td>
                             <td class="px-3 py-2 text-right">
+                                <button
+                                    type="button"
+                                    data-toggle-variant-edit="variant-edit-{{ $v->id }}"
+                                    class="text-indigo-600 hover:underline text-xs"
+                                >
+                                    Sửa
+                                </button>
+                                <button
+                                    type="button"
+                                    data-delete-variant="{{ $v->id }}"
+                                    class="ml-3 text-red-600 hover:underline text-xs"
+                                >
+                                    Xoá
+                                </button>
+                            </td>
+                        </tr>
+                        <tr id="variant-edit-{{ $v->id }}" class="hidden bg-gray-50">
+                            <td colspan="6" class="p-4">
                                 <form
                                     method="POST"
-                                    action="{{ route('admin.products.variants.destroy', [$product, $v]) }}"
-                                    class="inline"
-                                    onsubmit="return confirm('Xoá biến thể?');"
+                                    action="{{ route('admin.products.variants.update', [$product, $v]) }}"
+                                    class="grid grid-cols-1 md:grid-cols-3 gap-3"
                                 >
                                     @csrf
-                                    @method ('DELETE')
-                                    <button
-                                        class="text-red-600 hover:underline text-xs"
-                                    >
-                                        Xoá
-                                    </button>
+                                    @method ('PUT')
+                                    <label class="text-xs font-medium">
+                                        Tên biến thể
+                                        <input
+                                            name="name"
+                                            value="{{ $v->name }}"
+                                            required
+                                            maxlength="200"
+                                            class="mt-1 w-full border rounded px-3 py-2 text-sm"
+                                        />
+                                    </label>
+                                    <label class="text-xs font-medium">
+                                        SKU
+                                        <input
+                                            name="sku"
+                                            value="{{ $v->sku }}"
+                                            maxlength="64"
+                                            class="mt-1 w-full border rounded px-3 py-2 text-sm"
+                                        />
+                                    </label>
+                                    <label class="text-xs font-medium">
+                                        Giá
+                                        <input
+                                            name="price"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value="{{ $v->price }}"
+                                            required
+                                            class="mt-1 w-full border rounded px-3 py-2 text-sm"
+                                        />
+                                    </label>
+                                    <label class="text-xs font-medium">
+                                        Giá khuyến mãi
+                                        <input
+                                            name="sale_price"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value="{{ $v->sale_price }}"
+                                            class="mt-1 w-full border rounded px-3 py-2 text-sm"
+                                        />
+                                    </label>
+                                    <label class="text-xs font-medium">
+                                        Trạng thái
+                                        <select
+                                            name="status"
+                                            class="mt-1 w-full border rounded px-3 py-2 text-sm"
+                                        >
+                                            <option value="active" @selected($v->status === 'active')>Hoạt động</option>
+                                            <option value="inactive" @selected($v->status === 'inactive')>Ẩn</option>
+                                        </select>
+                                    </label>
+                                    <label class="flex items-center gap-2 self-end pb-2 text-sm">
+                                        <input type="hidden" name="is_default" value="0" />
+                                        <input
+                                            type="checkbox"
+                                            name="is_default"
+                                            value="1"
+                                            @checked($v->is_default)
+                                        />
+                                        <span>Biến thể mặc định</span>
+                                    </label>
+                                    <div class="md:col-span-3 flex justify-end gap-2">
+                                        <button
+                                            type="button"
+                                            data-toggle-variant-edit="variant-edit-{{ $v->id }}"
+                                            class="px-4 py-2 rounded border text-sm"
+                                        >
+                                            Huỷ
+                                        </button>
+                                        <button class="px-4 py-2 rounded bg-indigo-600 text-white text-sm">
+                                            Lưu biến thể
+                                        </button>
+                                    </div>
                                 </form>
                             </td>
                         </tr>
@@ -149,4 +239,30 @@
             </form>
         </details>
     </div>
+    <script>
+        document.querySelectorAll('[data-toggle-variant-edit]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const row = document.getElementById(button.dataset.toggleVariantEdit);
+                row.classList.toggle('hidden');
+            });
+        });
+
+        document.querySelectorAll('[data-delete-variant]').forEach((button) => {
+            button.addEventListener('click', () => {
+                if (!confirm('Đánh dấu xoá biến thể này? Thay đổi chỉ có hiệu lực khi bấm Lưu.')) {
+                    return;
+                }
+
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'delete_variant_ids[]';
+                input.value = button.dataset.deleteVariant;
+                document.getElementById('product-edit-form').append(input);
+
+                button.closest('[data-variant-row]').classList.add('opacity-50');
+                button.disabled = true;
+                button.textContent = 'Sẽ xóa khi lưu';
+            });
+        });
+    </script>
 @endsection

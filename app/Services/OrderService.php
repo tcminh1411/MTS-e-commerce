@@ -44,6 +44,10 @@ class OrderService
                 throw new RuntimeException('Giỏ hàng đang trống, không thể đặt hàng.');
             }
 
+            $cart->setRelation('items', $items);
+            $this->cartService->refreshPrices($cart);
+            $items = $cart->items;
+
             // Tính subtotal + tổng weight TRƯỚC để validate rate khả dụng
             $subtotal = (int) $items->sum(fn ($i) => $i->unit_price * $i->quantity);
             $totalWeightGram = (int) $items->sum(function ($i) {
@@ -151,16 +155,37 @@ class OrderService
         });
     }
 
-    /**
-     * Sinh mã đơn: ORD-YYYYMMDD-NNNN.
-     * Đếm theo ngày — chấp nhận race condition thấp trong đồ án.
-     * (Production: dùng lock/sequence table — note refactor sau.)
-     */
+    /** Sinh mã đơn tăng tuần tự theo ngày, khóa sequence trong transaction checkout. */
     private function generateOrderNumber(): string
     {
-        $prefix = 'ORD-'.now()->format('Ymd').'-';
-        $todayCount = Order::whereDate('created_at', today())->count();
+        $date = now()->format('Ymd');
+        $prefix = 'ORD-'.$date.'-';
 
-        return $prefix.str_pad((string) ($todayCount + 1), 4, '0', STR_PAD_LEFT);
+        DB::table('order_number_sequences')->insertOrIgnore([
+            'sequence_date' => $date,
+            'last_number' => 0,
+        ]);
+
+        $sequence = DB::table('order_number_sequences')
+            ->where('sequence_date', $date)
+            ->lockForUpdate()
+            ->first();
+
+        $lastNumber = (int) $sequence->last_number;
+        $latestOrderNumber = Order::query()
+            ->where('order_number', 'like', $prefix.'%')
+            ->orderByDesc('order_number')
+            ->value('order_number');
+
+        if ($latestOrderNumber) {
+            $lastNumber = max($lastNumber, (int) substr($latestOrderNumber, strlen($prefix)));
+        }
+
+        $nextNumber = $lastNumber + 1;
+        DB::table('order_number_sequences')
+            ->where('sequence_date', $date)
+            ->update(['last_number' => $nextNumber]);
+
+        return $prefix.str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
     }
 }

@@ -6,6 +6,7 @@ use App\Mail\StockAvailableMail;
 use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\ProductVariant;
+use App\Models\ReturnRequest;
 use App\Models\StockAlert;
 use App\Models\StockMovement;
 use App\Models\Warehouse;
@@ -45,11 +46,13 @@ class InventoryService
             $this->restore($order);
         }
 
-        $order->loadMissing('items');
+        $order->loadMissing('items.variant');
 
         foreach ($order->items as $item) {
-            if (! $item->variant_id) {
-                continue;
+            if (! $item->variant_id || ! $item->variant) {
+                throw ValidationException::withMessages([
+                    'warehouse_id' => "Không thể giao '{$item->product_name}': đơn hàng chưa liên kết sản phẩm với biến thể hợp lệ để quản lý tồn kho.",
+                ]);
             }
 
             $inventory = Inventory::query()
@@ -151,6 +154,168 @@ class InventoryService
                 'created_by_user_id' => Auth::id(),
             ]);
         }
+    }
+
+    public function restoreReturnedOrder(Order $order, ReturnRequest $returnRequest): void
+    {
+        if (StockMovement::query()
+            ->where('reference_type', 'return')
+            ->where('reference_id', $returnRequest->id)
+            ->where('type', 'return')
+            ->exists()
+        ) {
+            return;
+        }
+
+        $order->loadMissing('items');
+        if ($order->items->isEmpty() || $order->items->contains(fn ($item) => ! $item->variant_id)) {
+            throw new RuntimeException('Không thể nhập hàng hoàn vì đơn có sản phẩm chưa được quản lý theo biến thể.');
+        }
+
+        $expectedQuantities = $order->items
+            ->groupBy('variant_id')
+            ->map(fn ($items) => (int) $items->sum('quantity'));
+
+        $movements = StockMovement::query()
+            ->selectRaw('warehouse_id, product_variant_id, SUM(quantity) as quantity')
+            ->where('reference_type', 'order')
+            ->where('reference_id', $order->id)
+            ->whereIn('type', ['out', 'return'])
+            ->groupBy('warehouse_id', 'product_variant_id')
+            ->havingRaw('SUM(quantity) < 0')
+            ->get();
+
+        $deductedQuantities = $movements
+            ->groupBy('product_variant_id')
+            ->map(fn ($variantMovements) => (int) abs($variantMovements->sum('quantity')));
+
+        if ($deductedQuantities->count() !== $expectedQuantities->count()) {
+            throw new RuntimeException('Không thể nhập hàng hoàn vì lịch sử xuất kho không khớp với sản phẩm trong đơn.');
+        }
+
+        foreach ($expectedQuantities as $variantId => $quantity) {
+            if ((int) ($deductedQuantities[$variantId] ?? 0) !== $quantity) {
+                throw new RuntimeException('Không thể nhập hàng hoàn vì lịch sử xuất kho không khớp với sản phẩm trong đơn.');
+            }
+        }
+
+        foreach ($movements as $movement) {
+            if (! $movement->warehouse_id) {
+                throw new RuntimeException('Không thể nhập hàng hoàn vì kho đã xuất sản phẩm không còn tồn tại.');
+            }
+
+            $inventory = Inventory::query()
+                ->where('warehouse_id', $movement->warehouse_id)
+                ->where('product_variant_id', $movement->product_variant_id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $inventory) {
+                throw new RuntimeException('Không tìm thấy tồn kho của kho đã xuất sản phẩm.');
+            }
+
+            $stockBefore = (int) $inventory->quantity;
+            $quantity = abs((int) $movement->quantity);
+            $stockAfter = $stockBefore + $quantity;
+
+            $inventory->update(['quantity' => $stockAfter]);
+            $this->syncVariantStock((int) $movement->product_variant_id);
+
+            StockMovement::create([
+                'warehouse_id' => $movement->warehouse_id,
+                'product_variant_id' => $movement->product_variant_id,
+                'type' => 'return',
+                'quantity' => $quantity,
+                'stock_before' => $stockBefore,
+                'stock_after' => $stockAfter,
+                'reference_type' => 'return',
+                'reference_id' => $returnRequest->id,
+                'note' => "Nhập lại kho do hoàn đơn {$order->order_number}",
+                'created_by_user_id' => Auth::id(),
+            ]);
+        }
+    }
+
+    /**
+     * Nhập, xuất hoặc điều chỉnh tồn kho thủ công.
+     */
+    public function adjust(
+        int $warehouseId,
+        int $variantId,
+        string $type,
+        int $quantity,
+        ?string $note = null,
+    ): void {
+        DB::transaction(function () use ($warehouseId, $variantId, $type, $quantity, $note): void {
+            $variant = ProductVariant::query()
+                ->whereKey($variantId)
+                ->whereHas('product')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $variant) {
+                throw ValidationException::withMessages([
+                    'product_variant_id' => 'Sản phẩm đã bị xóa hoặc không còn khả dụng.',
+                ]);
+            }
+
+            $warehouse = Warehouse::query()
+                ->whereKey($warehouseId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $inventory = Inventory::firstOrCreate(
+                [
+                    'warehouse_id' => $warehouse->id,
+                    'product_variant_id' => $variantId,
+                ],
+                ['quantity' => 0, 'low_stock_threshold' => 5]
+            );
+            $inventory = Inventory::query()
+                ->whereKey($inventory->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $stockBefore = (int) $inventory->quantity;
+            $variantStockBefore = (int) $variant->stock;
+
+            if ($type === 'out' && $quantity > $stockBefore) {
+                throw ValidationException::withMessages([
+                    'quantity' => "Không thể xuất {$quantity} — tồn kho hiện tại chỉ còn {$stockBefore}.",
+                ]);
+            }
+
+            $stockAfter = match ($type) {
+                'in' => $stockBefore + $quantity,
+                'out' => $stockBefore - $quantity,
+                'adjust' => $quantity,
+            };
+
+            $inventory->update(['quantity' => $stockAfter]);
+            $newVariantStock = (int) Inventory::query()
+                ->where('product_variant_id', $variant->id)
+                ->sum('quantity');
+            $variant->update(['stock' => $newVariantStock]);
+
+            if ($variantStockBefore === 0 && $newVariantStock > 0) {
+                DB::afterCommit(function () use ($variantId): void {
+                    $this->notifyStockAlerts($variantId);
+                });
+            }
+
+            StockMovement::create([
+                'warehouse_id' => $warehouse->id,
+                'product_variant_id' => $variant->id,
+                'type' => $type,
+                'quantity' => $stockAfter - $stockBefore,
+                'stock_before' => $stockBefore,
+                'stock_after' => $stockAfter,
+                'reference_type' => 'manual',
+                'reference_id' => null,
+                'note' => $note,
+                'created_by_user_id' => Auth::id(),
+            ]);
+        });
     }
 
     /**

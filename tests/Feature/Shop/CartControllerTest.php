@@ -62,6 +62,147 @@ class CartControllerTest extends TestCase
         $this->assertDatabaseHas('cart_items', ['variant_id' => $variant->id]);
     }
 
+    public function test_add_to_cart_can_exceed_variant_stock(): void
+    {
+        $product = $this->makeProduct();
+        $variant = $this->makeVariant($product);
+        $variant->update(['stock' => 3]);
+
+        $this->post(route('cart.store'), [
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->post(route('cart.store'), [
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 3,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('cart_items', [
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 4,
+        ]);
+    }
+
+    public function test_add_requires_a_variant_when_product_has_active_variants(): void
+    {
+        $product = $this->makeProduct();
+        $this->makeVariant($product);
+
+        $this->post(route('cart.store'), [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ])
+            ->assertSessionHasErrors('variant_id');
+
+        $this->assertDatabaseCount('cart_items', 0);
+    }
+
+    public function test_add_rejects_variant_from_another_product(): void
+    {
+        $product = $this->makeProduct('Product one');
+        $otherProduct = $this->makeProduct('Product two');
+        $foreignVariant = $this->makeVariant($otherProduct);
+
+        $this->post(route('cart.store'), [
+            'product_id' => $product->id,
+            'variant_id' => $foreignVariant->id,
+            'quantity' => 1,
+        ])
+            ->assertSessionHasErrors('variant_id');
+
+        $this->assertDatabaseCount('cart_items', 0);
+    }
+
+    public function test_product_with_only_inactive_variants_still_requires_a_variant(): void
+    {
+        $product = $this->makeProduct();
+        $product->update(['product_type' => 'variable']);
+        $variant = $this->makeVariant($product);
+        $variant->update(['status' => 'inactive']);
+
+        $this->post(route('cart.store'), [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ])
+            ->assertSessionHasErrors('variant_id');
+
+        $this->assertDatabaseCount('cart_items', 0);
+    }
+
+    public function test_cart_renders_and_can_remove_item_when_product_is_soft_deleted(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->makeProduct();
+        $variant = $this->makeVariant($product);
+        $cart = Cart::create(['user_id' => $user->id, 'currency' => 'VND']);
+        $item = CartItem::create([
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 2,
+            'unit_price' => 100000,
+        ]);
+        $product->delete();
+
+        $this->actingAs($user)
+            ->get(route('cart.index'))
+            ->assertOk()
+            ->assertSee('Sản phẩm đã xóa')
+            ->assertSee('product-placeholder.svg', false)
+            ->assertSee($variant->name);
+
+        $this->actingAs($user)
+            ->delete(route('cart.destroy', $item))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('cart_items', ['id' => $item->id]);
+    }
+
+    public function test_cart_renders_when_variant_is_soft_deleted(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->makeProduct();
+        $variant = $this->makeVariant($product);
+        $cart = Cart::create(['user_id' => $user->id, 'currency' => 'VND']);
+        CartItem::create([
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+            'unit_price' => 100000,
+        ]);
+        $variant->delete();
+
+        $this->actingAs($user)
+            ->get(route('cart.index'))
+            ->assertOk()
+            ->assertSee($product->name)
+            ->assertSee('Phân loại đã xóa');
+    }
+
+    public function test_variable_product_with_all_variants_deleted_can_be_added_without_a_variant(): void
+    {
+        $product = $this->makeProduct();
+        $product->update(['product_type' => 'variable']);
+
+        $this->post(route('cart.store'), [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('cart_items', [
+            'product_id' => $product->id,
+            'variant_id' => null,
+            'quantity' => 1,
+        ]);
+    }
+
     public function test_add_returns_json_when_wants_json(): void
     {
         $product = $this->makeProduct();

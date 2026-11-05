@@ -2,9 +2,15 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Inventory;
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\ReturnRequest;
+use App\Models\StockMovement;
 use App\Models\User;
+use App\Models\Warehouse;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -110,17 +116,95 @@ class ReturnRequestControllerTest extends TestCase
         $this->assertSame('rejected', $return->fresh()->status);
     }
 
-    public function test_mark_refunded_updates_order_payment_status(): void
+    public function test_mark_refunded_does_not_update_payment_status_without_order_stock_history(): void
     {
         $admin = $this->admin();
         $return = $this->makeReturnRequest('approved', orderTotal: 100000);
 
         $this->actingAs($admin)
             ->patch(route('admin.orders.returns.markRefunded', $return))
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertSame('approved', $return->fresh()->status);
+        $this->assertSame('paid', $return->order->fresh()->payment_status);
+    }
+
+    public function test_mark_refunded_restores_order_items_to_their_original_warehouse_once(): void
+    {
+        $admin = $this->admin();
+        $return = $this->makeReturnRequest('approved', orderTotal: 100000);
+        $product = Product::create([
+            'name' => 'Returned product',
+            'slug' => 'returned-product',
+            'status' => 'active',
+        ]);
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'RETURN-SKU',
+            'name' => 'Default',
+            'is_default' => true,
+            'stock' => 3,
+            'status' => 'active',
+        ]);
+        $warehouse = Warehouse::create([
+            'name' => 'Return warehouse',
+            'code' => 'RETURN',
+            'is_active' => true,
+        ]);
+        Inventory::create([
+            'warehouse_id' => $warehouse->id,
+            'product_variant_id' => $variant->id,
+            'quantity' => 3,
+        ]);
+        OrderItem::create([
+            'order_id' => $return->order_id,
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'product_name' => $product->name,
+            'quantity' => 2,
+            'unit_price' => 50000,
+            'line_total' => 100000,
+        ]);
+        StockMovement::create([
+            'warehouse_id' => $warehouse->id,
+            'product_variant_id' => $variant->id,
+            'type' => 'out',
+            'quantity' => -2,
+            'stock_before' => 5,
+            'stock_after' => 3,
+            'reference_type' => 'order',
+            'reference_id' => $return->order_id,
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.orders.returns.markRefunded', $return))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
 
         $this->assertSame('refunded', $return->fresh()->status);
         $this->assertSame('refunded', $return->order->fresh()->payment_status);
+        $this->assertSame(5, $warehouse->inventories()->first()->quantity);
+        $this->assertSame(5, $variant->fresh()->stock);
+        $this->assertDatabaseHas('stock_movements', [
+            'warehouse_id' => $warehouse->id,
+            'product_variant_id' => $variant->id,
+            'type' => 'return',
+            'quantity' => 2,
+            'reference_type' => 'return',
+            'reference_id' => $return->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.orders.returns.markRefunded', $return))
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertSame(5, $warehouse->inventories()->first()->quantity);
+        $this->assertSame(1, StockMovement::where('reference_type', 'return')
+            ->where('reference_id', $return->id)
+            ->where('type', 'return')
+            ->count());
     }
 
     public function test_mark_refunded_rejects_non_approved(): void

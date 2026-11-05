@@ -12,6 +12,7 @@ use App\Models\StockAlert;
 use App\Models\StockMovement;
 use App\Models\Warehouse;
 use App\Services\InventoryService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -21,6 +22,41 @@ use Tests\TestCase;
 class InventoryServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_stock_movement_requires_a_warehouse_and_prevents_deleting_its_warehouse(): void
+    {
+        [$order, $variant] = $this->makeOrderWithVariant(qty: 1);
+        $warehouse = $this->makeWarehouse('WH-AUDIT');
+        $movement = StockMovement::create([
+            'warehouse_id' => $warehouse->id,
+            'product_variant_id' => $variant->id,
+            'type' => 'out',
+            'quantity' => -1,
+            'stock_before' => 1,
+            'stock_after' => 0,
+            'reference_type' => 'order',
+            'reference_id' => $order->id,
+        ]);
+
+        $this->assertSame($movement->id, $warehouse->movements()->firstOrFail()->id);
+
+        $this->expectException(QueryException::class);
+        $warehouse->delete();
+    }
+
+    public function test_stock_movement_cannot_be_created_without_a_warehouse(): void
+    {
+        [, $variant] = $this->makeOrderWithVariant(qty: 1);
+
+        $this->expectException(QueryException::class);
+        StockMovement::create([
+            'product_variant_id' => $variant->id,
+            'type' => 'in',
+            'quantity' => 1,
+            'stock_before' => 0,
+            'stock_after' => 1,
+        ]);
+    }
 
     public function test_deduct_reduces_inventory_and_writes_movement(): void
     {

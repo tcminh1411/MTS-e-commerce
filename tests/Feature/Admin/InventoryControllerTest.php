@@ -44,6 +44,57 @@ class InventoryControllerTest extends TestCase
             ->assertOk();
     }
 
+    public function test_deleted_product_is_hidden_from_inventory_and_stock_entry_options(): void
+    {
+        $admin = $this->admin();
+        [$warehouse, $variant] = $this->setupInventory(qty: 5);
+        $product = $variant->product;
+        $product->update(['name' => 'Deleted inventory product']);
+        $product->delete();
+
+        $this->actingAs($admin)
+            ->get(route('admin.inventories.index'))
+            ->assertOk()
+            ->assertDontSee($variant->sku)
+            ->assertDontSee($variant->product->name);
+
+        $this->actingAs($admin)
+            ->get(route('admin.inventories.create'))
+            ->assertOk()
+            ->assertDontSee($variant->sku)
+            ->assertDontSee('N/A');
+
+        $this->assertDatabaseHas('inventories', [
+            'warehouse_id' => $warehouse->id,
+            'product_variant_id' => $variant->id,
+            'quantity' => 5,
+        ]);
+    }
+
+    public function test_deleted_product_variant_cannot_be_used_for_manual_inventory_adjustment(): void
+    {
+        $admin = $this->admin();
+        [$warehouse, $variant] = $this->setupInventory(qty: 5);
+        $variant->product->delete();
+
+        $this->actingAs($admin)
+            ->post(route('admin.inventories.store'), [
+                'warehouse_id' => $warehouse->id,
+                'product_variant_id' => $variant->id,
+                'type' => 'in',
+                'quantity' => 10,
+            ])
+            ->assertSessionHasErrors('product_variant_id');
+
+        $this->assertSame(5, $warehouse->inventories()->first()->quantity);
+        $this->assertDatabaseMissing('stock_movements', [
+            'warehouse_id' => $warehouse->id,
+            'product_variant_id' => $variant->id,
+            'type' => 'in',
+            'reference_type' => 'manual',
+        ]);
+    }
+
     public function test_import_increases_inventory_and_variant_stock(): void
     {
         $admin = $this->admin();
@@ -61,6 +112,13 @@ class InventoryControllerTest extends TestCase
 
         $this->assertSame(15, Inventory::first()->quantity);
         $this->assertSame(15, $variant->fresh()->stock);
+        $this->assertDatabaseHas('stock_movements', [
+            'warehouse_id' => $warehouse->id,
+            'product_variant_id' => $variant->id,
+            'type' => 'in',
+            'quantity' => 10,
+            'reference_type' => 'manual',
+        ]);
     }
 
     public function test_export_decreases_inventory(): void

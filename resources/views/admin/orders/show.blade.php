@@ -64,6 +64,22 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {{-- ==================== CỘT TRÁI (2/3) ==================== --}}
         <div class="lg:col-span-2 space-y-4">
+            @if ($itemsMissingVariant->isNotEmpty())
+                <div class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                    <p class="font-semibold">
+                        Không thể giao đơn vì sản phẩm chưa được liên kết với biến thể hợp lệ để quản lý tồn kho:
+                    </p>
+                    <ul class="mt-1 list-inside list-disc">
+                        @foreach ($itemsMissingVariant as $productName)
+                            <li>{{ $productName }}</li>
+                        @endforeach
+                    </ul>
+                    <p class="mt-2">
+                        Đơn cần có biến thể hợp lệ được liên kết trước khi chọn kho xuất.
+                    </p>
+                </div>
+            @endif
+
             {{-- Thông tin khách hàng --}}
             <div class="bg-white rounded-xl shadow-sm p-5">
                 <h2 class="font-semibold mb-3">Thông tin người nhận</h2>
@@ -285,6 +301,7 @@
                             <option
                                 value="{{ $key }}"
                                 @selected ($order->status === $key)
+                                @disabled ($key === 'completed' && ! in_array($order->status, ['shipping', 'completed'], true))
                             >
                                 {{ $label }}
                                 @if ($order->status === $key) (hiện tại)@endif
@@ -294,6 +311,11 @@
                     @error ('to_status')
                         <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
                     @enderror
+                    @if ($order->status !== 'shipping')
+                        <p class="mb-3 text-xs text-gray-500">
+                            Chỉ hoàn thành đơn sau khi chuyển sang đang giao và trừ tồn kho.
+                        </p>
+                    @endif
 
                     <div
                         x-show="toStatus === 'shipping'"
