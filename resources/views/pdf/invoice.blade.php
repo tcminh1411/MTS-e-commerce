@@ -303,7 +303,7 @@
 
     {{-- ===== FOOTER ===== --}}
     <div class="footer">
-        Hóa đơn được in lúc {{ now()->format('d/m/Y H:i') }} — Cảm ơn quý khách
+        Hóa đơn được in lúc {{ now()->format('d/m/Y H:i') }} - Cảm ơn quý khách
         đã mua hàng tại MTS!
     </div>
 </body>

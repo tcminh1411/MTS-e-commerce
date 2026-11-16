@@ -281,7 +281,7 @@ class InventoryService
 
             if ($type === 'out' && $quantity > $stockBefore) {
                 throw ValidationException::withMessages([
-                    'quantity' => "Không thể xuất {$quantity} — tồn kho hiện tại chỉ còn {$stockBefore}.",
+                    'quantity' => "Không thể xuất {$quantity} - tồn kho hiện tại chỉ còn {$stockBefore}.",
                 ]);
             }
 

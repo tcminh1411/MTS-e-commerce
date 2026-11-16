@@ -193,7 +193,7 @@ class OrderController extends Controller
 
             $note = '[Payment] '.$from.' → '.$data['payment_status'];
             if (! empty($data['note'])) {
-                $note .= ' — '.$data['note'];
+                $note .= ' - '.$data['note'];
             }
 
             OrderStatusHistory::create([

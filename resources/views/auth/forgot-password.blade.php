@@ -2,7 +2,7 @@
 <x-guest-layout>
     <div class="text-center mb-6">
         <h1 class="font-serif text-2xl font-bold">Quên mật khẩu</h1>
-        <p class="text-sm text-muted mt-1">Nhập email đã đăng ký — chúng tôi sẽ gửi link đặt lại mật khẩu.</p>
+        <p class="text-sm text-muted mt-1">Nhập email đã đăng ký - chúng tôi sẽ gửi link đặt lại mật khẩu.</p>
     </div>
 
     <x-auth-session-status class="mb-4" :status="session('status')" />

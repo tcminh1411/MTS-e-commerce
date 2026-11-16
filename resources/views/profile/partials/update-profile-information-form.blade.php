@@ -110,7 +110,7 @@
                     name="gender"
                     class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                 >
-                    <option value="">— Chưa chọn —</option>
+                    <option value="">- Chưa chọn -</option>
                     <option
                         value="male"
                         @selected (old('gender', $user->gender) === 'male')
