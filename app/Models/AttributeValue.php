@@ -3,14 +3,26 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /** Đại diện dữ liệu giá trị thuộc tính và các quan hệ liên quan. */
 class AttributeValue extends Model
 {
     protected $fillable = ['attribute_id', 'value', 'slug', 'color_code', 'sort_order'];
 
-    public function attribute()
+    public function attribute(): BelongsTo
     {
         return $this->belongsTo(Attribute::class);
+    }
+
+    public function variants(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ProductVariant::class,
+            'variant_attribute_values',
+            'attribute_value_id',
+            'variant_id'
+        );
     }
 }

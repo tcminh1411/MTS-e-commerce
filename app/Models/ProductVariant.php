@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -50,7 +51,7 @@ class ProductVariant extends Model
         return $this->hasMany(ProductImage::class, 'variant_id');
     }
 
-    public function attributeValues()
+    public function attributeValues(): BelongsToMany
     {
         return $this->belongsToMany(
             AttributeValue::class,

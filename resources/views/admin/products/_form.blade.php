@@ -199,7 +199,7 @@
         <div>
             <label class="block text-sm font-medium mb-1">Danh mục</label>
             <select name="category_id" class="w-full border rounded px-3 py-2">
-                <option value="">— Chưa chọn —</option>
+                <option value="">- Chưa chọn -</option>
                 @foreach ($categories as $c)
                     <option
                         value="{{ $c->id }}"
@@ -214,7 +214,7 @@
         <div>
             <label class="block text-sm font-medium mb-1">Thương hiệu</label>
             <select name="brand_id" class="w-full border rounded px-3 py-2">
-                <option value="">— Chưa chọn —</option>
+                <option value="">- Chưa chọn -</option>
                 @foreach ($brands as $b)
                     <option
                         value="{{ $b->id }}"
@@ -224,6 +224,69 @@
                     </option>
                 @endforeach
             </select>
+        </div>
+
+        <div class="space-y-3">
+            <div>
+                <h3 class="text-sm font-semibold text-gray-800">Thuộc tính sản phẩm</h3>
+                <p class="text-xs text-gray-500">
+                    Chọn thuộc tính và đánh dấu thuộc tính dùng để tạo biến thể.
+                    Khi sửa sản phẩm, dropdown thêm biến thể cập nhật ngay mà không cần lưu trước.
+                </p>
+            </div>
+            @php
+                $assignedAttributeIds = array_map('intval', (array) old('attribute_ids', array_keys($assignedAttributeSettings)));
+                $variationAttributeIds = array_map('intval', (array) old(
+                    'variation_attribute_ids',
+                    array_keys(array_filter($assignedAttributeSettings, fn ($settings) => $settings['is_variation']))
+                ));
+            @endphp
+            @forelse ($attributes as $attribute)
+                @php
+                    $isAssigned = in_array($attribute->id, $assignedAttributeIds, true);
+                @endphp
+                <div class="rounded border border-gray-200 p-3">
+                    <label class="flex items-center gap-2 text-sm font-medium">
+                        <input
+                            type="checkbox"
+                            name="attribute_ids[]"
+                            value="{{ $attribute->id }}"
+                            data-attribute-assignment="{{ $attribute->id }}"
+                            @if ($product->exists) x-model.number="assignedIds" @endif
+                            @checked($isAssigned)
+                        />
+                        <span>{{ $attribute->name }}</span>
+                        <span class="text-xs font-normal text-gray-500">
+                            ({{ $attribute->values->pluck('value')->implode(', ') }})
+                        </span>
+                    </label>
+                    <label class="ml-6 mt-2 flex items-center gap-2 text-xs text-gray-600">
+                        <input
+                            type="checkbox"
+                            name="variation_attribute_ids[]"
+                            value="{{ $attribute->id }}"
+                            data-variation-attribute="{{ $attribute->id }}"
+                            @if ($product->exists)
+                                x-model.number="variationIds"
+                                :disabled="!assignedIds.includes({{ $attribute->id }})"
+                            @endif
+                            @checked(in_array($attribute->id, $variationAttributeIds, true))
+                            @disabled(!$isAssigned)
+                        />
+                        Dùng để chọn giá trị cho biến thể
+                    </label>
+                </div>
+            @empty
+                <p class="rounded border border-dashed p-3 text-sm text-gray-500">
+                    Chưa có thuộc tính. Tạo thuộc tính trước để gán cho sản phẩm.
+                </p>
+            @endforelse
+            @error ('attribute_ids')
+                <p class="text-sm text-red-600">{{ $message }}</p>
+            @enderror
+            @error ('variation_attribute_ids')
+                <p class="text-sm text-red-600">{{ $message }}</p>
+            @enderror
         </div>
 
         <div>
@@ -239,6 +302,21 @@
                 @endforeach
             </select>
         </div>
+
+        <script>
+            document.querySelectorAll('[data-attribute-assignment]').forEach((assignment) => {
+                const variation = document.querySelector(
+                    `[data-variation-attribute="${assignment.dataset.attributeAssignment}"]`
+                );
+
+                assignment.addEventListener('change', () => {
+                    variation.disabled = !assignment.checked;
+                    if (!assignment.checked) {
+                        variation.checked = false;
+                    }
+                });
+            });
+        </script>
 
         <label class="inline-flex items-center gap-2">
             <input type="hidden" name="is_featured" value="0" />

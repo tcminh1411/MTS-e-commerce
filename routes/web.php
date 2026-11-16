@@ -2,6 +2,7 @@
 
 // Định nghĩa các route cho cửa hàng và khu vực quản trị.
 
+use App\Http\Controllers\Admin\AttributeController as AdminAttributeController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
@@ -225,6 +226,7 @@ Route::middleware(['auth', 'role:admin|staff'])
 
             Route::resource('categories', CategoryController::class)->except('show');
             Route::resource('brands', BrandController::class)->except('show');
+            Route::resource('attributes', AdminAttributeController::class)->except('show');
         });
 
         /*
