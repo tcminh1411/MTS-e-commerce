@@ -3,10 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\Faq;
-// Tạo dữ liệu câu hỏi thường gặp mẫu.
-
 use Illuminate\Database\Seeder;
 
+// Mục đích: tạo danh sách câu hỏi thường gặp demo.
+// Phụ thuộc: không.
 class DemoFaqSeeder extends Seeder
 {
     public function run(): void

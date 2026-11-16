@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\Inventory;
-use App\Models\ProductVariant;
 use App\Models\Warehouse;
 use Illuminate\Database\Seeder;
 
+// Mục đích: tạo dữ liệu kho nền tảng.
+// Phụ thuộc: không.
 class WarehouseSeeder extends Seeder
 {
     public function run(): void
@@ -39,32 +39,6 @@ class WarehouseSeeder extends Seeder
             Warehouse::firstOrCreate(['code' => $data['code']], $data);
         }
 
-        $warehouseIds = Warehouse::pluck('id', 'code');
-        $variantIds = ProductVariant::pluck('id');
-        $created = 0;
-
-        foreach ($warehouseIds as $code => $warehouseId) {
-            $existing = Inventory::where('warehouse_id', $warehouseId)
-                ->pluck('product_variant_id')
-                ->toArray();
-
-            foreach ($variantIds as $vid) {
-                if (in_array($vid, $existing, true)) {
-                    continue;
-                }
-
-                Inventory::create([
-                    'warehouse_id' => $warehouseId,
-                    'product_variant_id' => $vid,
-                    'quantity' => 0,
-                    'low_stock_threshold' => 5,
-                ]);
-                $created++;
-            }
-        }
-
-        $this->command->info(
-            'Đã seed '.count($warehouses).' kho (HN-01, HCM-01, CT-01). Inventories created: '.$created
-        );
+        $this->command->info('Đã seed '.count($warehouses).' kho (HN-01, HCM-01, CT-01).');
     }
 }

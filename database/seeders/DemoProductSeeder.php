@@ -2,549 +2,28 @@
 
 namespace Database\Seeders;
 
+use App\Models\Attribute;
+use App\Models\AttributeValue;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
-// Tạo dữ liệu sản phẩm và biến thể minh họa.
-
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
+// Mục đích: tạo sản phẩm, ảnh, biến thể và thuộc tính demo.
+// Phụ thuộc: AttributeSeeder, DemoCatalogSeeder.
 class DemoProductSeeder extends Seeder
 {
-    public function run(): void
-    {
-        $catMap = Category::pluck('id', 'slug');
-        $brandMap = Brand::pluck('id', 'slug');
+    private const PRODUCT_WEIGHT_RANGE = [200, 1500];
 
-        // Mỗi item: name, slug, category_slug, brand_slug, price, sale_price,
-        // is_featured, img (keyword LoremFlickr), short_description, variants[]
-        $products = [
-            // ============ SMARTPHONE ============
-            [
-                'name' => 'iPhone 15 Pro Max 256GB', 'slug' => 'iphone-15-pro-max-256gb',
-                'category' => 'smartphone', 'brand' => 'apple',
-                'price' => 34990000, 'sale_price' => 32990000, 'is_featured' => true, 'img' => 'iphone',
-                'short_description' => 'iPhone 15 Pro Max — khung Titan, chip A17 Pro, camera 48MP, USB-C.',
-                'variants' => [
-                    ['name' => 'Titan Tự Nhiên 256GB', 'price' => 34990000, 'sale_price' => 32990000],
-                    ['name' => 'Titan Xanh 256GB',     'price' => 34990000, 'sale_price' => 32990000],
-                    ['name' => 'Titan Tự Nhiên 512GB', 'price' => 40990000, 'sale_price' => 38990000],
-                    ['name' => 'Titan Xanh 512GB',     'price' => 40990000, 'sale_price' => 38990000],
-                ],
-            ],
-            [
-                'name' => 'iPhone 15 128GB', 'slug' => 'iphone-15-128gb',
-                'category' => 'smartphone', 'brand' => 'apple',
-                'price' => 22990000, 'sale_price' => 20990000, 'is_featured' => true, 'img' => 'iphone',
-                'short_description' => 'iPhone 15 — Dynamic Island, camera 48MP, chip A16 Bionic.',
-                'variants' => [
-                    ['name' => 'Đen 128GB',  'price' => 22990000, 'sale_price' => 20990000],
-                    ['name' => 'Xanh 128GB', 'price' => 22990000, 'sale_price' => 20990000],
-                    ['name' => 'Đen 256GB',  'price' => 25990000, 'sale_price' => 23990000],
-                    ['name' => 'Xanh 256GB', 'price' => 25990000, 'sale_price' => 23990000],
-                ],
-            ],
-            [
-                'name' => 'iPhone 14 128GB', 'slug' => 'iphone-14-128gb',
-                'category' => 'smartphone', 'brand' => 'apple',
-                'price' => 18990000, 'sale_price' => 16990000, 'is_featured' => false, 'img' => 'iphone',
-                'short_description' => 'iPhone 14 — chip A15 Bionic, camera kép 12MP.',
-                'variants' => [
-                    ['name' => 'Đen 128GB',   'price' => 18990000, 'sale_price' => 16990000],
-                    ['name' => 'Trắng 128GB', 'price' => 18990000, 'sale_price' => 16990000],
-                ],
-            ],
-            [
-                'name' => 'Samsung Galaxy S24 Ultra 256GB', 'slug' => 'samsung-galaxy-s24-ultra-256gb',
-                'category' => 'smartphone', 'brand' => 'samsung',
-                'price' => 31990000, 'sale_price' => 28990000, 'is_featured' => true, 'img' => 'samsung',
-                'short_description' => 'Galaxy S24 Ultra — S Pen, camera 200MP, Galaxy AI.',
-                'variants' => [
-                    ['name' => 'Titan Đen 256GB', 'price' => 31990000, 'sale_price' => 28990000],
-                    ['name' => 'Titan Tím 256GB', 'price' => 31990000, 'sale_price' => 28990000],
-                    ['name' => 'Titan Đen 512GB', 'price' => 36990000, 'sale_price' => 33990000],
-                    ['name' => 'Titan Tím 512GB', 'price' => 36990000, 'sale_price' => 33990000],
-                ],
-            ],
-            [
-                'name' => 'Samsung Galaxy S24 256GB', 'slug' => 'samsung-galaxy-s24-256gb',
-                'category' => 'smartphone', 'brand' => 'samsung',
-                'price' => 22990000, 'sale_price' => 20490000, 'is_featured' => false, 'img' => 'samsung',
-                'short_description' => 'Galaxy S24 — màn hình 6.2", chip Exynos 2400, Galaxy AI.',
-                'variants' => [
-                    ['name' => 'Đen 256GB',    'price' => 22990000, 'sale_price' => 20490000],
-                    ['name' => 'Xanh lá 256GB', 'price' => 22990000, 'sale_price' => 20490000],
-                ],
-            ],
-            [
-                'name' => 'Samsung Galaxy A55 5G 128GB', 'slug' => 'samsung-galaxy-a55-5g-128gb',
-                'category' => 'smartphone', 'brand' => 'samsung',
-                'price' => 9990000, 'sale_price' => 8990000, 'is_featured' => false, 'img' => 'samsung',
-                'short_description' => 'Galaxy A55 5G — camera 50MP OIS, pin 5000mAh, sạc nhanh 25W.',
-                'variants' => [
-                    ['name' => 'Xanh 128GB', 'price' => 9990000, 'sale_price' => 8990000],
-                    ['name' => 'Đen 128GB',  'price' => 9990000, 'sale_price' => 8990000],
-                ],
-            ],
-            [
-                'name' => 'Xiaomi 14 256GB', 'slug' => 'xiaomi-14-256gb',
-                'category' => 'smartphone', 'brand' => 'xiaomi',
-                'price' => 18990000, 'sale_price' => 17490000, 'is_featured' => true, 'img' => 'xiaomi',
-                'short_description' => 'Xiaomi 14 — Snapdragon 8 Gen 3, camera Leica, sạc 90W.',
-                'variants' => [
-                    ['name' => 'Đen 256GB',   'price' => 18990000, 'sale_price' => 17490000],
-                    ['name' => 'Trắng 256GB', 'price' => 18990000, 'sale_price' => 17490000],
-                    ['name' => 'Đen 512GB',   'price' => 21990000, 'sale_price' => 19990000],
-                    ['name' => 'Trắng 512GB', 'price' => 21990000, 'sale_price' => 19990000],
-                ],
-            ],
-            [
-                'name' => 'Redmi Note 13 Pro 128GB', 'slug' => 'redmi-note-13-pro-128gb',
-                'category' => 'smartphone', 'brand' => 'xiaomi',
-                'price' => 6490000, 'sale_price' => 5990000, 'is_featured' => false, 'img' => 'xiaomi',
-                'short_description' => 'Redmi Note 13 Pro — camera 200MP, màn AMOLED 120Hz.',
-                'variants' => [
-                    ['name' => 'Đen 128GB', 'price' => 6490000, 'sale_price' => 5990000],
-                    ['name' => 'Tím 128GB', 'price' => 6490000, 'sale_price' => 5990000],
-                ],
-            ],
-            [
-                'name' => 'OPPO Reno11 5G 256GB', 'slug' => 'oppo-reno11-5g-256gb',
-                'category' => 'smartphone', 'brand' => 'oppo',
-                'price' => 10990000, 'sale_price' => 9990000, 'is_featured' => false, 'img' => 'android-phone',
-                'short_description' => 'OPPO Reno11 5G — camera chân dung 32MP, sạc SuperVOOC 67W.',
-                'variants' => [
-                    ['name' => 'Xanh 256GB', 'price' => 10990000, 'sale_price' => 9990000],
-                    ['name' => 'Đen 256GB',  'price' => 10990000, 'sale_price' => 9990000],
-                ],
-            ],
-            [
-                'name' => 'Realme 12 Pro+ 5G 256GB', 'slug' => 'realme-12-pro-plus-5g-256gb',
-                'category' => 'smartphone', 'brand' => 'realme',
-                'price' => 10990000, 'sale_price' => 9490000, 'is_featured' => false, 'img' => 'android-phone',
-                'short_description' => 'Realme 12 Pro+ — camera periscope 64MP, Snapdragon 7s Gen 2.',
-                'variants' => [
-                    ['name' => 'Xanh 256GB', 'price' => 10990000, 'sale_price' => 9490000],
-                    ['name' => 'Be 256GB',   'price' => 10990000, 'sale_price' => 9490000],
-                ],
-            ],
+    private const PRODUCT_SOLD_COUNT_RANGE = [10, 500];
 
-            // ============ ĐIỆN THOẠI GAMING ============
-            [
-                'name' => 'Asus ROG Phone 7 Ultimate', 'slug' => 'asus-rog-phone-7-ultimate',
-                'category' => 'dien-thoai-gaming', 'brand' => 'asus',
-                'price' => 26990000, 'sale_price' => 24990000, 'is_featured' => false, 'img' => 'gaming-phone',
-                'short_description' => 'ROG Phone 7 Ultimate — Snapdragon 8 Gen 2, màn AMOLED 165Hz.',
-                'variants' => [],
-            ],
-            [
-                'name' => 'RedMagic 9 Pro 256GB', 'slug' => 'redmagic-9-pro-256gb',
-                'category' => 'dien-thoai-gaming', 'brand' => 'vivo',
-                'price' => 19990000, 'sale_price' => 18490000, 'is_featured' => false, 'img' => 'gaming-phone',
-                'short_description' => 'RedMagic 9 Pro — tản nhiệt quạt, Snapdragon 8 Gen 3.',
-                'variants' => [],
-            ],
+    private const VARIANT_WEIGHT_RANGE = [200, 1500];
 
-            // ============ ĐIỆN THOẠI PHỔ THÔNG ============
-            [
-                'name' => 'Nokia 105 2023', 'slug' => 'nokia-105-2023',
-                'category' => 'dien-thoai-pho-thong', 'brand' => 'samsung',
-                'price' => 490000, 'sale_price' => null, 'is_featured' => false, 'img' => 'feature-phone',
-                'short_description' => 'Nokia 105 — pin trâu 800mAh, nghe gọi cơ bản.',
-                'variants' => [],
-            ],
+    private const PRODUCT_IMAGE_COUNT = 3;
 
-            // ============ LAPTOP GAMING ============
-            [
-                'name' => 'Asus ROG Strix G16 i7 RTX 4060', 'slug' => 'asus-rog-strix-g16-i7-rtx4060',
-                'category' => 'laptop-gaming', 'brand' => 'asus',
-                'price' => 34990000, 'sale_price' => 32990000, 'is_featured' => true, 'img' => 'gaming-laptop',
-                'short_description' => 'ROG Strix G16 — i7-13650HX, RTX 4060 8GB, màn 165Hz.',
-                'variants' => [
-                    ['name' => 'i7 / 16GB / 512GB', 'price' => 34990000, 'sale_price' => 32990000],
-                    ['name' => 'i7 / 32GB / 1TB',   'price' => 40990000, 'sale_price' => 38990000],
-                ],
-            ],
-            [
-                'name' => 'MSI Katana 15 i7 RTX 4060', 'slug' => 'msi-katana-15-i7-rtx4060',
-                'category' => 'laptop-gaming', 'brand' => 'msi',
-                'price' => 27990000, 'sale_price' => 25990000, 'is_featured' => false, 'img' => 'gaming-laptop',
-                'short_description' => 'MSI Katana 15 — i7-13620H, RTX 4060, màn 144Hz.',
-                'variants' => [
-                    ['name' => 'i7 / 16GB / 512GB', 'price' => 27990000, 'sale_price' => 25990000],
-                    ['name' => 'i7 / 32GB / 1TB',   'price' => 32990000, 'sale_price' => 30990000],
-                ],
-            ],
-            [
-                'name' => 'Acer Nitro V15 Ryzen 7 RTX 4050', 'slug' => 'acer-nitro-v15-ryzen7-rtx4050',
-                'category' => 'laptop-gaming', 'brand' => 'acer',
-                'price' => 22990000, 'sale_price' => 20990000, 'is_featured' => false, 'img' => 'gaming-laptop',
-                'short_description' => 'Acer Nitro V15 — Ryzen 7 7735HS, RTX 4050, màn 144Hz.',
-                'variants' => [
-                    ['name' => 'R7 / 8GB / 512GB',  'price' => 22990000, 'sale_price' => 20990000],
-                    ['name' => 'R7 / 16GB / 512GB', 'price' => 25490000, 'sale_price' => 23490000],
-                ],
-            ],
-            [
-                'name' => 'Lenovo Legion 5 Pro RTX 4070', 'slug' => 'lenovo-legion-5-pro-rtx4070',
-                'category' => 'laptop-gaming', 'brand' => 'lenovo',
-                'price' => 44990000, 'sale_price' => 41990000, 'is_featured' => true, 'img' => 'gaming-laptop',
-                'short_description' => 'Legion 5 Pro — Ryzen 7 7745HX, RTX 4070, màn 2.5K 165Hz.',
-                'variants' => [
-                    ['name' => 'R7 / 16GB / 1TB', 'price' => 44990000, 'sale_price' => 41990000],
-                    ['name' => 'R9 / 32GB / 1TB', 'price' => 52990000, 'sale_price' => 49990000],
-                ],
-            ],
-
-            // ============ LAPTOP VĂN PHÒNG ============
-            [
-                'name' => 'Dell Inspiron 15 3520 i5', 'slug' => 'dell-inspiron-15-3520-i5',
-                'category' => 'laptop-van-phong', 'brand' => 'dell',
-                'price' => 14990000, 'sale_price' => 13490000, 'is_featured' => false, 'img' => 'laptop',
-                'short_description' => 'Dell Inspiron 15 3520 — i5-1235U, RAM 8GB, SSD 512GB.',
-                'variants' => [
-                    ['name' => 'i5 / 8GB / 512GB',  'price' => 14990000, 'sale_price' => 13490000],
-                    ['name' => 'i5 / 16GB / 512GB', 'price' => 16490000, 'sale_price' => 14990000],
-                    ['name' => 'i7 / 16GB / 1TB',   'price' => 19990000, 'sale_price' => 18490000],
-                ],
-            ],
-            [
-                'name' => 'HP Pavilion 15 i5 1235U', 'slug' => 'hp-pavilion-15-i5-1235u',
-                'category' => 'laptop-van-phong', 'brand' => 'hp',
-                'price' => 15990000, 'sale_price' => 14490000, 'is_featured' => false, 'img' => 'laptop',
-                'short_description' => 'HP Pavilion 15 — i5-1235U, RAM 8GB, SSD 512GB, màn 15.6" FHD.',
-                'variants' => [
-                    ['name' => 'i5 / 8GB / 512GB',  'price' => 15990000, 'sale_price' => 14490000],
-                    ['name' => 'i5 / 16GB / 512GB', 'price' => 17490000, 'sale_price' => 15990000],
-                ],
-            ],
-            [
-                'name' => 'Lenovo IdeaPad Slim 3 Ryzen 5', 'slug' => 'lenovo-ideapad-slim-3-ryzen5',
-                'category' => 'laptop-van-phong', 'brand' => 'lenovo',
-                'price' => 12990000, 'sale_price' => 11490000, 'is_featured' => false, 'img' => 'laptop',
-                'short_description' => 'IdeaPad Slim 3 — Ryzen 5 7530U, RAM 16GB, SSD 512GB.',
-                'variants' => [
-                    ['name' => 'R5 / 8GB / 512GB',  'price' => 12990000, 'sale_price' => 11490000],
-                    ['name' => 'R5 / 16GB / 512GB', 'price' => 14490000, 'sale_price' => 12990000],
-                ],
-            ],
-            [
-                'name' => 'Asus Vivobook 15 OLED i5', 'slug' => 'asus-vivobook-15-oled-i5',
-                'category' => 'laptop-van-phong', 'brand' => 'asus',
-                'price' => 16990000, 'sale_price' => 15490000, 'is_featured' => false, 'img' => 'laptop',
-                'short_description' => 'Vivobook 15 OLED — i5-13500H, màn OLED FHD, RAM 16GB.',
-                'variants' => [
-                    ['name' => 'i5 / 8GB / 512GB',  'price' => 16990000, 'sale_price' => 15490000],
-                    ['name' => 'i5 / 16GB / 512GB', 'price' => 18490000, 'sale_price' => 16990000],
-                ],
-            ],
-            [
-                'name' => 'Dell XPS 13 Plus i7', 'slug' => 'dell-xps-13-plus-i7',
-                'category' => 'laptop-van-phong', 'brand' => 'dell',
-                'price' => 42990000, 'sale_price' => 39990000, 'is_featured' => true, 'img' => 'laptop',
-                'short_description' => 'Dell XPS 13 Plus — i7-1360P, màn 13.4" 3.5K OLED, siêu mỏng.',
-                'variants' => [
-                    ['name' => 'i7 / 16GB / 512GB', 'price' => 42990000, 'sale_price' => 39990000],
-                    ['name' => 'i7 / 32GB / 1TB',   'price' => 49990000, 'sale_price' => 46990000],
-                ],
-            ],
-
-            // ============ MACBOOK ============
-            [
-                'name' => 'MacBook Pro 14 M3 2023', 'slug' => 'macbook-pro-14-m3-2023',
-                'category' => 'macbook', 'brand' => 'apple',
-                'price' => 49990000, 'sale_price' => 46990000, 'is_featured' => true, 'img' => 'macbook',
-                'short_description' => 'MacBook Pro 14 — chip M3 Pro/Max, màn Liquid Retina XDR.',
-                'variants' => [
-                    ['name' => 'M3 Pro 18GB/512GB', 'price' => 49990000, 'sale_price' => 46990000],
-                    ['name' => 'M3 Max 36GB/1TB',   'price' => 64990000, 'sale_price' => 61990000],
-                ],
-            ],
-            [
-                'name' => 'MacBook Air 13 M2 2023', 'slug' => 'macbook-air-13-m2-2023',
-                'category' => 'macbook', 'brand' => 'apple',
-                'price' => 27990000, 'sale_price' => 25990000, 'is_featured' => true, 'img' => 'macbook',
-                'short_description' => 'MacBook Air 13 — chip M2, màn Liquid Retina, mỏng nhẹ.',
-                'variants' => [
-                    ['name' => 'M2 / 8GB / 256GB',  'price' => 27990000, 'sale_price' => 25990000],
-                    ['name' => 'M2 / 8GB / 512GB',  'price' => 32990000, 'sale_price' => 30990000],
-                    ['name' => 'M2 / 16GB / 512GB', 'price' => 35990000, 'sale_price' => 33990000],
-                ],
-            ],
-
-            // ============ iPAD ============
-            [
-                'name' => 'iPad Pro 11 M2 2022', 'slug' => 'ipad-pro-11-m2-2022',
-                'category' => 'ipad', 'brand' => 'apple',
-                'price' => 23990000, 'sale_price' => 21990000, 'is_featured' => true, 'img' => 'ipad',
-                'short_description' => 'iPad Pro 11 — chip M2, màn Liquid Retina, hỗ trợ Apple Pencil 2.',
-                'variants' => [
-                    ['name' => 'WiFi 128GB',       'price' => 23990000, 'sale_price' => 21990000],
-                    ['name' => 'WiFi 256GB',       'price' => 26990000, 'sale_price' => 24990000],
-                    ['name' => 'WiFi 512GB',       'price' => 32990000, 'sale_price' => 30990000],
-                ],
-            ],
-            [
-                'name' => 'iPad Air 5 M1 2022', 'slug' => 'ipad-air-5-m1-2022',
-                'category' => 'ipad', 'brand' => 'apple',
-                'price' => 15990000, 'sale_price' => 14490000, 'is_featured' => false, 'img' => 'ipad',
-                'short_description' => 'iPad Air 5 — chip M1, màn 10.9" Liquid Retina.',
-                'variants' => [
-                    ['name' => 'WiFi 64GB',  'price' => 15990000, 'sale_price' => 14490000],
-                    ['name' => 'WiFi 256GB', 'price' => 19990000, 'sale_price' => 18490000],
-                ],
-            ],
-            [
-                'name' => 'iPad 10.9 2022', 'slug' => 'ipad-10-9-2022',
-                'category' => 'ipad', 'brand' => 'apple',
-                'price' => 10990000, 'sale_price' => 9990000, 'is_featured' => false, 'img' => 'ipad',
-                'short_description' => 'iPad 10.9 — chip A14 Bionic, thiết kế viền mỏng.',
-                'variants' => [
-                    ['name' => 'WiFi 64GB',  'price' => 10990000, 'sale_price' => 9990000],
-                    ['name' => 'WiFi 256GB', 'price' => 13990000, 'sale_price' => 12990000],
-                ],
-            ],
-
-            // ============ ANDROID TABLET ============
-            [
-                'name' => 'Samsung Galaxy Tab S9 11"', 'slug' => 'samsung-galaxy-tab-s9-11',
-                'category' => 'android-tablet', 'brand' => 'samsung',
-                'price' => 21990000, 'sale_price' => 19990000, 'is_featured' => false, 'img' => 'tablet',
-                'short_description' => 'Galaxy Tab S9 — Snapdragon 8 Gen 2, kèm S Pen, màn AMOLED 120Hz.',
-                'variants' => [
-                    ['name' => 'WiFi 128GB', 'price' => 21990000, 'sale_price' => 19990000],
-                    ['name' => 'WiFi 256GB', 'price' => 24990000, 'sale_price' => 22990000],
-                ],
-            ],
-            [
-                'name' => 'Xiaomi Pad 6 8GB/256GB', 'slug' => 'xiaomi-pad-6-8gb-256gb',
-                'category' => 'android-tablet', 'brand' => 'xiaomi',
-                'price' => 8990000, 'sale_price' => 7990000, 'is_featured' => false, 'img' => 'tablet',
-                'short_description' => 'Xiaomi Pad 6 — Snapdragon 870, màn 11" 144Hz.',
-                'variants' => [
-                    ['name' => '6GB / 128GB', 'price' => 7990000, 'sale_price' => 6990000],
-                    ['name' => '8GB / 256GB', 'price' => 8990000, 'sale_price' => 7990000],
-                ],
-            ],
-
-            // ============ TAI NGHE ============
-            [
-                'name' => 'Tai nghe Sony WH-1000XM5', 'slug' => 'tai-nghe-sony-wh-1000xm5',
-                'category' => 'tai-nghe', 'brand' => 'sony',
-                'price' => 7990000, 'sale_price' => 6990000, 'is_featured' => true, 'img' => 'headphone',
-                'short_description' => 'Sony WH-1000XM5 — chống ồn hàng đầu, pin 30h, Bluetooth 5.2.',
-                'variants' => [],
-            ],
-            [
-                'name' => 'Tai nghe JBL Tune 770NC', 'slug' => 'tai-nghe-jbl-tune-770nc',
-                'category' => 'tai-nghe', 'brand' => 'jbl',
-                'price' => 2490000, 'sale_price' => 2190000, 'is_featured' => false, 'img' => 'headphone',
-                'short_description' => 'JBL Tune 770NC — chống ồn chủ động, pin 70h.',
-                'variants' => [],
-            ],
-
-            // ============ SẠC & CÁP ============
-            [
-                'name' => 'Củ sạc Anker 65W GaN', 'slug' => 'cu-sac-anker-65w-gan',
-                'category' => 'sac-cap', 'brand' => 'anker',
-                'price' => 890000, 'sale_price' => 790000, 'is_featured' => false, 'img' => 'charger',
-                'short_description' => 'Anker 65W GaN — 3 cổng, sạc nhanh laptop + điện thoại.',
-                'variants' => [],
-            ],
-            [
-                'name' => 'Pin dự phòng Baseus 10000mAh', 'slug' => 'pin-du-phong-baseus-10000mah',
-                'category' => 'sac-cap', 'brand' => 'baseus',
-                'price' => 490000, 'sale_price' => 390000, 'is_featured' => false, 'img' => 'power-bank',
-                'short_description' => 'Baseus 10000mAh — sạc nhanh 22.5W, có sẵn 2 cáp.',
-                'variants' => [],
-            ],
-            [
-                'name' => 'Cáp USB-C to Lightning Anker 1m', 'slug' => 'cap-usbc-lightning-anker-1m',
-                'category' => 'sac-cap', 'brand' => 'anker',
-                'price' => 290000, 'sale_price' => null, 'is_featured' => false, 'img' => 'usb-cable',
-                'short_description' => 'Cáp Anker USB-C to Lightning 1m — sạc nhanh PD, bọc dù bền.',
-                'variants' => [],
-            ],
-
-            // ============ ỐP LƯNG ============
-            [
-                'name' => 'Ốp lưng iPhone 15 Pro Max Silicon Magsafe', 'slug' => 'op-lung-iphone-15-pro-max-silicon-magsafe',
-                'category' => 'op-lung-bao-da', 'brand' => 'apple',
-                'price' => 1490000, 'sale_price' => null, 'is_featured' => false, 'img' => 'phone-case',
-                'short_description' => 'Ốp Silicon Magsafe chính hãng Apple — bám tốt, hỗ trợ sạc Magsafe.',
-                'variants' => [],
-            ],
-            [
-                'name' => 'Bao da iPad 10.9 có bàn phím', 'slug' => 'bao-da-ipad-10-9-co-ban-phim',
-                'category' => 'op-lung-bao-da', 'brand' => 'logitech',
-                'price' => 1290000, 'sale_price' => 1090000, 'is_featured' => false, 'img' => 'tablet-case',
-                'short_description' => 'Bao da iPad 10.9 tích hợp bàn phím Bluetooth, gập 3 tư thế.',
-                'variants' => [],
-            ],
-
-            // ============ CHUỘT & BÀN PHÍM ============
-            [
-                'name' => 'Chuột Logitech MX Master 3S', 'slug' => 'chuot-logitech-mx-master-3s',
-                'category' => 'chuot-ban-phim', 'brand' => 'logitech',
-                'price' => 2590000, 'sale_price' => 2390000, 'is_featured' => true, 'img' => 'computer-mouse',
-                'short_description' => 'MX Master 3S — cảm biến 8000 DPI, cuộn MagSpeed, kết nối 3 thiết bị.',
-                'variants' => [],
-            ],
-            [
-                'name' => 'Chuột gaming Logitech G502 Hero', 'slug' => 'chuot-gaming-logitech-g502-hero',
-                'category' => 'chuot-ban-phim', 'brand' => 'logitech',
-                'price' => 1290000, 'sale_price' => 1090000, 'is_featured' => false, 'img' => 'gaming-mouse',
-                'short_description' => 'G502 Hero — cảm biến HERO 25K, 11 nút lập trình.',
-                'variants' => [],
-            ],
-            [
-                'name' => 'Bàn phím cơ Razer BlackWidow V4', 'slug' => 'ban-phim-co-razer-blackwidow-v4',
-                'category' => 'chuot-ban-phim', 'brand' => 'razer',
-                'price' => 3990000, 'sale_price' => 3690000, 'is_featured' => false, 'img' => 'mechanical-keyboard',
-                'short_description' => 'Razer BlackWidow V4 — switch Green, LED RGB Chroma, kê tay.',
-                'variants' => [],
-            ],
-
-            // ============ LOA BLUETOOTH ============
-            [
-                'name' => 'Loa Bluetooth JBL Flip 6', 'slug' => 'loa-bluetooth-jbl-flip-6',
-                'category' => 'loa-bluetooth', 'brand' => 'jbl',
-                'price' => 2990000, 'sale_price' => 2690000, 'is_featured' => true, 'img' => 'bluetooth-speaker',
-                'short_description' => 'JBL Flip 6 — chống nước IP67, pin 12h, âm thanh JBL Pro Sound.',
-                'variants' => [],
-            ],
-            [
-                'name' => 'Loa Bluetooth Sony SRS-XB100', 'slug' => 'loa-bluetooth-sony-srs-xb100',
-                'category' => 'loa-bluetooth', 'brand' => 'sony',
-                'price' => 1490000, 'sale_price' => 1290000, 'is_featured' => false, 'img' => 'bluetooth-speaker',
-                'short_description' => 'Sony SRS-XB100 — loa nhỏ gọn, chống nước IP67, pin 16h.',
-                'variants' => [],
-            ],
-
-            // ============ TWS ============
-            [
-                'name' => 'AirPods Pro 2 USB-C', 'slug' => 'airpods-pro-2-usb-c',
-                'category' => 'tws', 'brand' => 'apple',
-                'price' => 5990000, 'sale_price' => 5490000, 'is_featured' => true, 'img' => 'airpods',
-                'short_description' => 'AirPods Pro 2 — chip H2, chống ồn chủ động, hộp sạc USB-C.',
-                'variants' => [],
-            ],
-            [
-                'name' => 'Samsung Galaxy Buds 2 Pro', 'slug' => 'samsung-galaxy-buds-2-pro',
-                'category' => 'tws', 'brand' => 'samsung',
-                'price' => 4490000, 'sale_price' => 3990000, 'is_featured' => false, 'img' => 'earbuds',
-                'short_description' => 'Galaxy Buds 2 Pro — chống ồn ANC, âm thanh 24bit Hi-Fi.',
-                'variants' => [],
-            ],
-            [
-                'name' => 'Xiaomi Buds 4 Pro', 'slug' => 'xiaomi-buds-4-pro',
-                'category' => 'tws', 'brand' => 'xiaomi',
-                'price' => 1990000, 'sale_price' => 1790000, 'is_featured' => false, 'img' => 'earbuds',
-                'short_description' => 'Xiaomi Buds 4 Pro — chống ồn 48dB, pin 38h, LDAC.',
-                'variants' => [],
-            ],
-
-            // ============ SMARTWATCH ============
-            [
-                'name' => 'Apple Watch Series 9 GPS 41mm', 'slug' => 'apple-watch-series-9-gps-41mm',
-                'category' => 'smartwatch', 'brand' => 'apple',
-                'price' => 10990000, 'sale_price' => 9990000, 'is_featured' => true, 'img' => 'apple-watch',
-                'short_description' => 'Apple Watch S9 — chip S9, màn hình 2000 nits, Double Tap.',
-                'variants' => [],
-            ],
-            [
-                'name' => 'Samsung Galaxy Watch 6 40mm', 'slug' => 'samsung-galaxy-watch-6-40mm',
-                'category' => 'smartwatch', 'brand' => 'samsung',
-                'price' => 6990000, 'sale_price' => 5990000, 'is_featured' => false, 'img' => 'smartwatch',
-                'short_description' => 'Galaxy Watch 6 — theo dõi sức khoẻ toàn diện, Wear OS.',
-                'variants' => [],
-            ],
-        ];
-
-        $idx = 0;
-        foreach ($products as $p) {
-            $idx++;
-            $skuBase = 'SP-'.str_pad((string) $idx, 4, '0', STR_PAD_LEFT);
-            $isVariable = ! empty($p['variants']) && count($p['variants']) > 1;
-
-            $product = Product::create([
-                'sku' => $skuBase,
-                'name' => $p['name'],
-                'slug' => $p['slug'],
-                'category_id' => $catMap[$p['category']] ?? null,
-                'brand_id' => $brandMap[$p['brand']] ?? null,
-                'product_type' => $isVariable ? 'variable' : 'simple',
-                'short_description' => $p['short_description'],
-                'description' => $this->makeDescription($p['category'], $p['short_description']),
-                'price' => $p['price'],
-                'sale_price' => $p['sale_price'] ?? null,
-                'cost_price' => (int) round($p['price'] * 0.82),
-                'currency' => 'VND',
-                'weight_gram' => random_int(200, 1500),
-                'status' => 'active',
-                'is_featured' => (bool) ($p['is_featured'] ?? false),
-                'published_at' => now()->subDays(random_int(0, 60)),
-                'rating_avg' => 0,
-                'rating_count' => 0,
-                'sold_count' => random_int(10, 500),
-                'meta_title' => $p['name'],
-                'meta_description' => $p['short_description'],
-            ]);
-
-            // 3 ảnh LoremFlickr khớp keyword, lock unique để cố định
-            for ($k = 1; $k <= 3; $k++) {
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'url' => $this->pickImage($p['img'], $idx, $k),
-                    'alt' => $p['name'],
-                    'sort_order' => $k - 1,
-                    'is_primary' => $k === 1,
-                ]);
-            }
-
-            // Variants
-            $variants = ! empty($p['variants']) ? $p['variants'] : [[
-                'name' => 'Mặc định',
-                'price' => $p['price'],
-                'sale_price' => $p['sale_price'] ?? null,
-            ]];
-
-            foreach ($variants as $j => $v) {
-                $suffix = $isVariable
-                    ? str_pad((string) ($j + 1), 2, '0', STR_PAD_LEFT)
-                    : 'DEF';
-
-                ProductVariant::create([
-                    'product_id' => $product->id,
-                    'sku' => $skuBase.'-'.$suffix,
-                    'name' => $v['name'],
-                    'price' => $v['price'],
-                    'sale_price' => $v['sale_price'] ?? null,
-                    'cost_price' => (int) round($v['price'] * 0.82),
-                    'weight_gram' => random_int(200, 1500),
-                    'is_default' => $j === 0,
-                    'stock' => 0,
-                    'status' => 'active',
-                    'sort_order' => $j,
-                ]);
-            }
-        }
-
-        $this->command->info(sprintf(
-            '✅ DemoProductSeeder: %d products (%d variable), %d variants, %d images.',
-            Product::count(),
-            Product::where('product_type', 'variable')->count(),
-            ProductVariant::count(),
-            ProductImage::count(),
-        ));
-    }
-
-    /**
-     * Map keyword → array Unsplash photo IDs (đã curate sẵn).
-     * Unsplash CDN ổn định vĩnh viễn, không như loremflickr đã chặn public.
-     */
     private const IMAGE_MAP = [
         'iphone' => [
             '1592286927505-1def25115558',
@@ -681,13 +160,917 @@ class DemoProductSeeder extends Seeder
         ],
     ];
 
+    public function run(): void
+    {
+        $catMap = Category::pluck('id', 'slug');
+        $brandMap = Brand::pluck('id', 'slug');
+
+        $products = [
+            // ============ SMARTPHONE ============
+            [
+                'name' => 'iPhone 15 Pro Max 256GB',
+                'slug' => 'iphone-15-pro-max-256gb',
+                'category' => 'smartphone',
+                'brand' => 'apple',
+                'price' => 34990000,
+                'sale_price' => 32990000,
+                'is_featured' => true,
+                'img' => 'iphone',
+                'short_description' => 'iPhone 15 Pro Max - khung Titan, chip A17 Pro, camera 48MP, USB-C.',
+                'variants' => [
+                    ['name' => 'Titan Tự Nhiên 256GB', 'price' => 34990000, 'sale_price' => 32990000],
+                    ['name' => 'Titan Xanh 256GB',     'price' => 34990000, 'sale_price' => 32990000],
+                    ['name' => 'Titan Tự Nhiên 512GB', 'price' => 40990000, 'sale_price' => 38990000],
+                    ['name' => 'Titan Xanh 512GB',     'price' => 40990000, 'sale_price' => 38990000],
+                ],
+            ],
+            [
+                'name' => 'iPhone 15 128GB',
+                'slug' => 'iphone-15-128gb',
+                'category' => 'smartphone',
+                'brand' => 'apple',
+                'price' => 22990000,
+                'sale_price' => 20990000,
+                'is_featured' => true,
+                'img' => 'iphone',
+                'short_description' => 'iPhone 15 - Dynamic Island, camera 48MP, chip A16 Bionic.',
+                'variants' => [
+                    ['name' => 'Đen 128GB',  'price' => 22990000, 'sale_price' => 20990000],
+                    ['name' => 'Xanh 128GB', 'price' => 22990000, 'sale_price' => 20990000],
+                    ['name' => 'Đen 256GB',  'price' => 25990000, 'sale_price' => 23990000],
+                    ['name' => 'Xanh 256GB', 'price' => 25990000, 'sale_price' => 23990000],
+                ],
+            ],
+            [
+                'name' => 'iPhone 14 128GB',
+                'slug' => 'iphone-14-128gb',
+                'category' => 'smartphone',
+                'brand' => 'apple',
+                'price' => 18990000,
+                'sale_price' => 16990000,
+                'is_featured' => false,
+                'img' => 'iphone',
+                'short_description' => 'iPhone 14 - chip A15 Bionic, camera kép 12MP.',
+                'variants' => [
+                    ['name' => 'Đen 128GB',   'price' => 18990000, 'sale_price' => 16990000],
+                    ['name' => 'Trắng 128GB', 'price' => 18990000, 'sale_price' => 16990000],
+                ],
+            ],
+            [
+                'name' => 'Samsung Galaxy S24 Ultra 256GB',
+                'slug' => 'samsung-galaxy-s24-ultra-256gb',
+                'category' => 'smartphone',
+                'brand' => 'samsung',
+                'price' => 31990000,
+                'sale_price' => 28990000,
+                'is_featured' => true,
+                'img' => 'samsung',
+                'short_description' => 'Galaxy S24 Ultra - S Pen, camera 200MP, Galaxy AI.',
+                'variants' => [
+                    ['name' => 'Titan Đen 256GB', 'price' => 31990000, 'sale_price' => 28990000],
+                    ['name' => 'Titan Tím 256GB', 'price' => 31990000, 'sale_price' => 28990000],
+                    ['name' => 'Titan Đen 512GB', 'price' => 36990000, 'sale_price' => 33990000],
+                    ['name' => 'Titan Tím 512GB', 'price' => 36990000, 'sale_price' => 33990000],
+                ],
+            ],
+            [
+                'name' => 'Samsung Galaxy S24 256GB',
+                'slug' => 'samsung-galaxy-s24-256gb',
+                'category' => 'smartphone',
+                'brand' => 'samsung',
+                'price' => 22990000,
+                'sale_price' => 20490000,
+                'is_featured' => false,
+                'img' => 'samsung',
+                'short_description' => 'Galaxy S24 - màn hình 6.2", chip Exynos 2400, Galaxy AI.',
+                'variants' => [
+                    ['name' => 'Đen 256GB',    'price' => 22990000, 'sale_price' => 20490000],
+                    ['name' => 'Xanh lá 256GB', 'price' => 22990000, 'sale_price' => 20490000],
+                ],
+            ],
+            [
+                'name' => 'Samsung Galaxy A55 5G 128GB',
+                'slug' => 'samsung-galaxy-a55-5g-128gb',
+                'category' => 'smartphone',
+                'brand' => 'samsung',
+                'price' => 9990000,
+                'sale_price' => 8990000,
+                'is_featured' => false,
+                'img' => 'samsung',
+                'short_description' => 'Galaxy A55 5G - camera 50MP OIS, pin 5000mAh, sạc nhanh 25W.',
+                'variants' => [
+                    ['name' => 'Xanh 128GB', 'price' => 9990000, 'sale_price' => 8990000],
+                    ['name' => 'Đen 128GB',  'price' => 9990000, 'sale_price' => 8990000],
+                ],
+            ],
+            [
+                'name' => 'Xiaomi 14 256GB',
+                'slug' => 'xiaomi-14-256gb',
+                'category' => 'smartphone',
+                'brand' => 'xiaomi',
+                'price' => 18990000,
+                'sale_price' => 17490000,
+                'is_featured' => true,
+                'img' => 'xiaomi',
+                'short_description' => 'Xiaomi 14 - Snapdragon 8 Gen 3, camera Leica, sạc 90W.',
+                'variants' => [
+                    ['name' => 'Đen 256GB',   'price' => 18990000, 'sale_price' => 17490000],
+                    ['name' => 'Trắng 256GB', 'price' => 18990000, 'sale_price' => 17490000],
+                    ['name' => 'Đen 512GB',   'price' => 21990000, 'sale_price' => 19990000],
+                    ['name' => 'Trắng 512GB', 'price' => 21990000, 'sale_price' => 19990000],
+                ],
+            ],
+            [
+                'name' => 'Redmi Note 13 Pro 128GB',
+                'slug' => 'redmi-note-13-pro-128gb',
+                'category' => 'smartphone',
+                'brand' => 'xiaomi',
+                'price' => 6490000,
+                'sale_price' => 5990000,
+                'is_featured' => false,
+                'img' => 'xiaomi',
+                'short_description' => 'Redmi Note 13 Pro - camera 200MP, màn AMOLED 120Hz.',
+                'variants' => [
+                    ['name' => 'Đen 128GB', 'price' => 6490000, 'sale_price' => 5990000],
+                    ['name' => 'Tím 128GB', 'price' => 6490000, 'sale_price' => 5990000],
+                ],
+            ],
+            [
+                'name' => 'OPPO Reno11 5G 256GB',
+                'slug' => 'oppo-reno11-5g-256gb',
+                'category' => 'smartphone',
+                'brand' => 'oppo',
+                'price' => 10990000,
+                'sale_price' => 9990000,
+                'is_featured' => false,
+                'img' => 'android-phone',
+                'short_description' => 'OPPO Reno11 5G - camera chân dung 32MP, sạc SuperVOOC 67W.',
+                'variants' => [
+                    ['name' => 'Xanh 256GB', 'price' => 10990000, 'sale_price' => 9990000],
+                    ['name' => 'Đen 256GB',  'price' => 10990000, 'sale_price' => 9990000],
+                ],
+            ],
+            [
+                'name' => 'Realme 12 Pro+ 5G 256GB',
+                'slug' => 'realme-12-pro-plus-5g-256gb',
+                'category' => 'smartphone',
+                'brand' => 'realme',
+                'price' => 10990000,
+                'sale_price' => 9490000,
+                'is_featured' => false,
+                'img' => 'android-phone',
+                'short_description' => 'Realme 12 Pro+ - camera periscope 64MP, Snapdragon 7s Gen 2.',
+                'variants' => [
+                    ['name' => 'Xanh 256GB', 'price' => 10990000, 'sale_price' => 9490000],
+                    ['name' => 'Be 256GB',   'price' => 10990000, 'sale_price' => 9490000],
+                ],
+            ],
+
+            // ============ ĐIỆN THOẠI GAMING ============
+            [
+                'name' => 'Asus ROG Phone 7 Ultimate',
+                'slug' => 'asus-rog-phone-7-ultimate',
+                'category' => 'dien-thoai-gaming',
+                'brand' => 'asus',
+                'price' => 26990000,
+                'sale_price' => 24990000,
+                'is_featured' => false,
+                'img' => 'gaming-phone',
+                'short_description' => 'ROG Phone 7 Ultimate - Snapdragon 8 Gen 2, màn AMOLED 165Hz.',
+                'variants' => [],
+            ],
+            [
+                'name' => 'RedMagic 9 Pro 256GB',
+                'slug' => 'redmagic-9-pro-256gb',
+                'category' => 'dien-thoai-gaming',
+                'brand' => 'vivo',
+                'price' => 19990000,
+                'sale_price' => 18490000,
+                'is_featured' => false,
+                'img' => 'gaming-phone',
+                'short_description' => 'RedMagic 9 Pro - tản nhiệt quạt, Snapdragon 8 Gen 3.',
+                'variants' => [],
+            ],
+
+            // ============ ĐIỆN THOẠI PHỔ THÔNG ============
+            [
+                'name' => 'Nokia 105 2023',
+                'slug' => 'nokia-105-2023',
+                'category' => 'dien-thoai-pho-thong',
+                'brand' => 'samsung',
+                'price' => 490000,
+                'sale_price' => null,
+                'is_featured' => false,
+                'img' => 'feature-phone',
+                'short_description' => 'Nokia 105 - pin trâu 800mAh, nghe gọi cơ bản.',
+                'variants' => [],
+            ],
+
+            // ============ LAPTOP GAMING ============
+            [
+                'name' => 'Asus ROG Strix G16 i7 RTX 4060',
+                'slug' => 'asus-rog-strix-g16-i7-rtx4060',
+                'category' => 'laptop-gaming',
+                'brand' => 'asus',
+                'price' => 34990000,
+                'sale_price' => 32990000,
+                'is_featured' => true,
+                'img' => 'gaming-laptop',
+                'short_description' => 'ROG Strix G16 - i7-13650HX, RTX 4060 8GB, màn 165Hz.',
+                'variants' => [
+                    ['name' => 'i7 / 16GB / 512GB', 'price' => 34990000, 'sale_price' => 32990000],
+                    ['name' => 'i7 / 32GB / 1TB',   'price' => 40990000, 'sale_price' => 38990000],
+                ],
+            ],
+            [
+                'name' => 'MSI Katana 15 i7 RTX 4060',
+                'slug' => 'msi-katana-15-i7-rtx4060',
+                'category' => 'laptop-gaming',
+                'brand' => 'msi',
+                'price' => 27990000,
+                'sale_price' => 25990000,
+                'is_featured' => false,
+                'img' => 'gaming-laptop',
+                'short_description' => 'MSI Katana 15 - i7-13620H, RTX 4060, màn 144Hz.',
+                'variants' => [
+                    ['name' => 'i7 / 16GB / 512GB', 'price' => 27990000, 'sale_price' => 25990000],
+                    ['name' => 'i7 / 32GB / 1TB',   'price' => 32990000, 'sale_price' => 30990000],
+                ],
+            ],
+            [
+                'name' => 'Acer Nitro V15 Ryzen 7 RTX 4050',
+                'slug' => 'acer-nitro-v15-ryzen7-rtx4050',
+                'category' => 'laptop-gaming',
+                'brand' => 'acer',
+                'price' => 22990000,
+                'sale_price' => 20990000,
+                'is_featured' => false,
+                'img' => 'gaming-laptop',
+                'short_description' => 'Acer Nitro V15 - Ryzen 7 7735HS, RTX 4050, màn 144Hz.',
+                'variants' => [
+                    ['name' => 'R7 / 8GB / 512GB',  'price' => 22990000, 'sale_price' => 20990000],
+                    ['name' => 'R7 / 16GB / 512GB', 'price' => 25490000, 'sale_price' => 23490000],
+                ],
+            ],
+            [
+                'name' => 'Lenovo Legion 5 Pro RTX 4070',
+                'slug' => 'lenovo-legion-5-pro-rtx4070',
+                'category' => 'laptop-gaming',
+                'brand' => 'lenovo',
+                'price' => 44990000,
+                'sale_price' => 41990000,
+                'is_featured' => true,
+                'img' => 'gaming-laptop',
+                'short_description' => 'Legion 5 Pro - Ryzen 7 7745HX, RTX 4070, màn 2.5K 165Hz.',
+                'variants' => [
+                    ['name' => 'R7 / 16GB / 1TB', 'price' => 44990000, 'sale_price' => 41990000],
+                    ['name' => 'R9 / 32GB / 1TB', 'price' => 52990000, 'sale_price' => 49990000],
+                ],
+            ],
+
+            // ============ LAPTOP VĂN PHÒNG ============
+            [
+                'name' => 'Dell Inspiron 15 3520 i5',
+                'slug' => 'dell-inspiron-15-3520-i5',
+                'category' => 'laptop-van-phong',
+                'brand' => 'dell',
+                'price' => 14990000,
+                'sale_price' => 13490000,
+                'is_featured' => false,
+                'img' => 'laptop',
+                'short_description' => 'Dell Inspiron 15 3520 - i5-1235U, RAM 8GB, SSD 512GB.',
+                'variants' => [
+                    ['name' => 'i5 / 8GB / 512GB',  'price' => 14990000, 'sale_price' => 13490000],
+                    ['name' => 'i5 / 16GB / 512GB', 'price' => 16490000, 'sale_price' => 14990000],
+                    ['name' => 'i7 / 16GB / 1TB',   'price' => 19990000, 'sale_price' => 18490000],
+                ],
+            ],
+            [
+                'name' => 'HP Pavilion 15 i5 1235U',
+                'slug' => 'hp-pavilion-15-i5-1235u',
+                'category' => 'laptop-van-phong',
+                'brand' => 'hp',
+                'price' => 15990000,
+                'sale_price' => 14490000,
+                'is_featured' => false,
+                'img' => 'laptop',
+                'short_description' => 'HP Pavilion 15 - i5-1235U, RAM 8GB, SSD 512GB, màn 15.6" FHD.',
+                'variants' => [
+                    ['name' => 'i5 / 8GB / 512GB',  'price' => 15990000, 'sale_price' => 14490000],
+                    ['name' => 'i5 / 16GB / 512GB', 'price' => 17490000, 'sale_price' => 15990000],
+                ],
+            ],
+            [
+                'name' => 'Lenovo IdeaPad Slim 3 Ryzen 5',
+                'slug' => 'lenovo-ideapad-slim-3-ryzen5',
+                'category' => 'laptop-van-phong',
+                'brand' => 'lenovo',
+                'price' => 12990000,
+                'sale_price' => 11490000,
+                'is_featured' => false,
+                'img' => 'laptop',
+                'short_description' => 'IdeaPad Slim 3 - Ryzen 5 7530U, RAM 16GB, SSD 512GB.',
+                'variants' => [
+                    ['name' => 'R5 / 8GB / 512GB',  'price' => 12990000, 'sale_price' => 11490000],
+                    ['name' => 'R5 / 16GB / 512GB', 'price' => 14490000, 'sale_price' => 12990000],
+                ],
+            ],
+            [
+                'name' => 'Asus Vivobook 15 OLED i5',
+                'slug' => 'asus-vivobook-15-oled-i5',
+                'category' => 'laptop-van-phong',
+                'brand' => 'asus',
+                'price' => 16990000,
+                'sale_price' => 15490000,
+                'is_featured' => false,
+                'img' => 'laptop',
+                'short_description' => 'Vivobook 15 OLED - i5-13500H, màn OLED FHD, RAM 16GB.',
+                'variants' => [
+                    ['name' => 'i5 / 8GB / 512GB',  'price' => 16990000, 'sale_price' => 15490000],
+                    ['name' => 'i5 / 16GB / 512GB', 'price' => 18490000, 'sale_price' => 16990000],
+                ],
+            ],
+            [
+                'name' => 'Dell XPS 13 Plus i7',
+                'slug' => 'dell-xps-13-plus-i7',
+                'category' => 'laptop-van-phong',
+                'brand' => 'dell',
+                'price' => 42990000,
+                'sale_price' => 39990000,
+                'is_featured' => true,
+                'img' => 'laptop',
+                'short_description' => 'Dell XPS 13 Plus - i7-1360P, màn 13.4" 3.5K OLED, siêu mỏng.',
+                'variants' => [
+                    ['name' => 'i7 / 16GB / 512GB', 'price' => 42990000, 'sale_price' => 39990000],
+                    ['name' => 'i7 / 32GB / 1TB',   'price' => 49990000, 'sale_price' => 46990000],
+                ],
+            ],
+
+            // ============ MACBOOK ============
+            [
+                'name' => 'MacBook Pro 14 M3 2023',
+                'slug' => 'macbook-pro-14-m3-2023',
+                'category' => 'macbook',
+                'brand' => 'apple',
+                'price' => 49990000,
+                'sale_price' => 46990000,
+                'is_featured' => true,
+                'img' => 'macbook',
+                'short_description' => 'MacBook Pro 14 - chip M3 Pro/Max, màn Liquid Retina XDR.',
+                'variants' => [
+                    ['name' => 'M3 Pro 18GB/512GB', 'price' => 49990000, 'sale_price' => 46990000],
+                    ['name' => 'M3 Max 36GB/1TB',   'price' => 64990000, 'sale_price' => 61990000],
+                ],
+            ],
+            [
+                'name' => 'MacBook Air 13 M2 2023',
+                'slug' => 'macbook-air-13-m2-2023',
+                'category' => 'macbook',
+                'brand' => 'apple',
+                'price' => 27990000,
+                'sale_price' => 25990000,
+                'is_featured' => true,
+                'img' => 'macbook',
+                'short_description' => 'MacBook Air 13 - chip M2, màn Liquid Retina, mỏng nhẹ.',
+                'variants' => [
+                    ['name' => 'M2 / 8GB / 256GB',  'price' => 27990000, 'sale_price' => 25990000],
+                    ['name' => 'M2 / 8GB / 512GB',  'price' => 32990000, 'sale_price' => 30990000],
+                    ['name' => 'M2 / 16GB / 512GB', 'price' => 35990000, 'sale_price' => 33990000],
+                ],
+            ],
+
+            // ============ iPAD ============
+            [
+                'name' => 'iPad Pro 11 M2 2022',
+                'slug' => 'ipad-pro-11-m2-2022',
+                'category' => 'ipad',
+                'brand' => 'apple',
+                'price' => 23990000,
+                'sale_price' => 21990000,
+                'is_featured' => true,
+                'img' => 'ipad',
+                'short_description' => 'iPad Pro 11 - chip M2, màn Liquid Retina, hỗ trợ Apple Pencil 2.',
+                'variants' => [
+                    ['name' => 'WiFi 128GB',       'price' => 23990000, 'sale_price' => 21990000],
+                    ['name' => 'WiFi 256GB',       'price' => 26990000, 'sale_price' => 24990000],
+                    ['name' => 'WiFi 512GB',       'price' => 32990000, 'sale_price' => 30990000],
+                ],
+            ],
+            [
+                'name' => 'iPad Air 5 M1 2022',
+                'slug' => 'ipad-air-5-m1-2022',
+                'category' => 'ipad',
+                'brand' => 'apple',
+                'price' => 15990000,
+                'sale_price' => 14490000,
+                'is_featured' => false,
+                'img' => 'ipad',
+                'short_description' => 'iPad Air 5 - chip M1, màn 10.9" Liquid Retina.',
+                'variants' => [
+                    ['name' => 'WiFi 64GB',  'price' => 15990000, 'sale_price' => 14490000],
+                    ['name' => 'WiFi 256GB', 'price' => 19990000, 'sale_price' => 18490000],
+                ],
+            ],
+            [
+                'name' => 'iPad 10.9 2022',
+                'slug' => 'ipad-10-9-2022',
+                'category' => 'ipad',
+                'brand' => 'apple',
+                'price' => 10990000,
+                'sale_price' => 9990000,
+                'is_featured' => false,
+                'img' => 'ipad',
+                'short_description' => 'iPad 10.9 - chip A14 Bionic, thiết kế viền mỏng.',
+                'variants' => [
+                    ['name' => 'WiFi 64GB',  'price' => 10990000, 'sale_price' => 9990000],
+                    ['name' => 'WiFi 256GB', 'price' => 13990000, 'sale_price' => 12990000],
+                ],
+            ],
+
+            // ============ ANDROID TABLET ============
+            [
+                'name' => 'Samsung Galaxy Tab S9 11"',
+                'slug' => 'samsung-galaxy-tab-s9-11',
+                'category' => 'android-tablet',
+                'brand' => 'samsung',
+                'price' => 21990000,
+                'sale_price' => 19990000,
+                'is_featured' => false,
+                'img' => 'tablet',
+                'short_description' => 'Galaxy Tab S9 - Snapdragon 8 Gen 2, kèm S Pen, màn AMOLED 120Hz.',
+                'variants' => [
+                    ['name' => 'WiFi 128GB', 'price' => 21990000, 'sale_price' => 19990000],
+                    ['name' => 'WiFi 256GB', 'price' => 24990000, 'sale_price' => 22990000],
+                ],
+            ],
+            [
+                'name' => 'Xiaomi Pad 6 8GB/256GB',
+                'slug' => 'xiaomi-pad-6-8gb-256gb',
+                'category' => 'android-tablet',
+                'brand' => 'xiaomi',
+                'price' => 8990000,
+                'sale_price' => 7990000,
+                'is_featured' => false,
+                'img' => 'tablet',
+                'short_description' => 'Xiaomi Pad 6 - Snapdragon 870, màn 11" 144Hz.',
+                'variants' => [
+                    ['name' => '6GB / 128GB', 'price' => 7990000, 'sale_price' => 6990000],
+                    ['name' => '8GB / 256GB', 'price' => 8990000, 'sale_price' => 7990000],
+                ],
+            ],
+
+            // ============ TAI NGHE ============
+            [
+                'name' => 'Tai nghe Sony WH-1000XM5',
+                'slug' => 'tai-nghe-sony-wh-1000xm5',
+                'category' => 'tai-nghe',
+                'brand' => 'sony',
+                'price' => 7990000,
+                'sale_price' => 6990000,
+                'is_featured' => true,
+                'img' => 'headphone',
+                'short_description' => 'Sony WH-1000XM5 - chống ồn hàng đầu, pin 30h, Bluetooth 5.2.',
+                'variants' => [],
+            ],
+            [
+                'name' => 'Tai nghe JBL Tune 770NC',
+                'slug' => 'tai-nghe-jbl-tune-770nc',
+                'category' => 'tai-nghe',
+                'brand' => 'jbl',
+                'price' => 2490000,
+                'sale_price' => 2190000,
+                'is_featured' => false,
+                'img' => 'headphone',
+                'short_description' => 'JBL Tune 770NC - chống ồn chủ động, pin 70h.',
+                'variants' => [],
+            ],
+
+            // ============ SẠC & CÁP ============
+            [
+                'name' => 'Củ sạc Anker 65W GaN',
+                'slug' => 'cu-sac-anker-65w-gan',
+                'category' => 'sac-cap',
+                'brand' => 'anker',
+                'price' => 890000,
+                'sale_price' => 790000,
+                'is_featured' => false,
+                'img' => 'charger',
+                'short_description' => 'Anker 65W GaN - 3 cổng, sạc nhanh laptop + điện thoại.',
+                'variants' => [],
+            ],
+            [
+                'name' => 'Pin dự phòng Baseus 10000mAh',
+                'slug' => 'pin-du-phong-baseus-10000mah',
+                'category' => 'sac-cap',
+                'brand' => 'baseus',
+                'price' => 490000,
+                'sale_price' => 390000,
+                'is_featured' => false,
+                'img' => 'power-bank',
+                'short_description' => 'Baseus 10000mAh - sạc nhanh 22.5W, có sẵn 2 cáp.',
+                'variants' => [],
+            ],
+            [
+                'name' => 'Cáp USB-C to Lightning Anker 1m',
+                'slug' => 'cap-usbc-lightning-anker-1m',
+                'category' => 'sac-cap',
+                'brand' => 'anker',
+                'price' => 290000,
+                'sale_price' => null,
+                'is_featured' => false,
+                'img' => 'usb-cable',
+                'short_description' => 'Cáp Anker USB-C to Lightning 1m - sạc nhanh PD, bọc dù bền.',
+                'variants' => [],
+            ],
+
+            // ============ ỐP LƯNG ============
+            [
+                'name' => 'Ốp lưng iPhone 15 Pro Max Silicon Magsafe',
+                'slug' => 'op-lung-iphone-15-pro-max-silicon-magsafe',
+                'category' => 'op-lung-bao-da',
+                'brand' => 'apple',
+                'price' => 1490000,
+                'sale_price' => null,
+                'is_featured' => false,
+                'img' => 'phone-case',
+                'short_description' => 'Ốp Silicon Magsafe chính hãng Apple - bám tốt, hỗ trợ sạc Magsafe.',
+                'variants' => [],
+            ],
+            [
+                'name' => 'Bao da iPad 10.9 có bàn phím',
+                'slug' => 'bao-da-ipad-10-9-co-ban-phim',
+                'category' => 'op-lung-bao-da',
+                'brand' => 'logitech',
+                'price' => 1290000,
+                'sale_price' => 1090000,
+                'is_featured' => false,
+                'img' => 'tablet-case',
+                'short_description' => 'Bao da iPad 10.9 tích hợp bàn phím Bluetooth, gập 3 tư thế.',
+                'variants' => [],
+            ],
+
+            // ============ CHUỘT & BÀN PHÍM ============
+            [
+                'name' => 'Chuột Logitech MX Master 3S',
+                'slug' => 'chuot-logitech-mx-master-3s',
+                'category' => 'chuot-ban-phim',
+                'brand' => 'logitech',
+                'price' => 2590000,
+                'sale_price' => 2390000,
+                'is_featured' => true,
+                'img' => 'computer-mouse',
+                'short_description' => 'MX Master 3S - cảm biến 8000 DPI, cuộn MagSpeed, kết nối 3 thiết bị.',
+                'variants' => [],
+            ],
+            [
+                'name' => 'Chuột gaming Logitech G502 Hero',
+                'slug' => 'chuot-gaming-logitech-g502-hero',
+                'category' => 'chuot-ban-phim',
+                'brand' => 'logitech',
+                'price' => 1290000,
+                'sale_price' => 1090000,
+                'is_featured' => false,
+                'img' => 'gaming-mouse',
+                'short_description' => 'G502 Hero - cảm biến HERO 25K, 11 nút lập trình.',
+                'variants' => [],
+            ],
+            [
+                'name' => 'Bàn phím cơ Razer BlackWidow V4',
+                'slug' => 'ban-phim-co-razer-blackwidow-v4',
+                'category' => 'chuot-ban-phim',
+                'brand' => 'razer',
+                'price' => 3990000,
+                'sale_price' => 3690000,
+                'is_featured' => false,
+                'img' => 'mechanical-keyboard',
+                'short_description' => 'Razer BlackWidow V4 - switch Green, LED RGB Chroma, kê tay.',
+                'variants' => [],
+            ],
+
+            // ============ LOA BLUETOOTH ============
+            [
+                'name' => 'Loa Bluetooth JBL Flip 6',
+                'slug' => 'loa-bluetooth-jbl-flip-6',
+                'category' => 'loa-bluetooth',
+                'brand' => 'jbl',
+                'price' => 2990000,
+                'sale_price' => 2690000,
+                'is_featured' => true,
+                'img' => 'bluetooth-speaker',
+                'short_description' => 'JBL Flip 6 - chống nước IP67, pin 12h, âm thanh JBL Pro Sound.',
+                'variants' => [],
+            ],
+            [
+                'name' => 'Loa Bluetooth Sony SRS-XB100',
+                'slug' => 'loa-bluetooth-sony-srs-xb100',
+                'category' => 'loa-bluetooth',
+                'brand' => 'sony',
+                'price' => 1490000,
+                'sale_price' => 1290000,
+                'is_featured' => false,
+                'img' => 'bluetooth-speaker',
+                'short_description' => 'Sony SRS-XB100 - loa nhỏ gọn, chống nước IP67, pin 16h.',
+                'variants' => [],
+            ],
+
+            // ============ TWS ============
+            [
+                'name' => 'AirPods Pro 2 USB-C',
+                'slug' => 'airpods-pro-2-usb-c',
+                'category' => 'tws',
+                'brand' => 'apple',
+                'price' => 5990000,
+                'sale_price' => 5490000,
+                'is_featured' => true,
+                'img' => 'airpods',
+                'short_description' => 'AirPods Pro 2 - chip H2, chống ồn chủ động, hộp sạc USB-C.',
+                'variants' => [],
+            ],
+            [
+                'name' => 'Samsung Galaxy Buds 2 Pro',
+                'slug' => 'samsung-galaxy-buds-2-pro',
+                'category' => 'tws',
+                'brand' => 'samsung',
+                'price' => 4490000,
+                'sale_price' => 3990000,
+                'is_featured' => false,
+                'img' => 'earbuds',
+                'short_description' => 'Galaxy Buds 2 Pro - chống ồn ANC, âm thanh 24bit Hi-Fi.',
+                'variants' => [],
+            ],
+            [
+                'name' => 'Xiaomi Buds 4 Pro',
+                'slug' => 'xiaomi-buds-4-pro',
+                'category' => 'tws',
+                'brand' => 'xiaomi',
+                'price' => 1990000,
+                'sale_price' => 1790000,
+                'is_featured' => false,
+                'img' => 'earbuds',
+                'short_description' => 'Xiaomi Buds 4 Pro - chống ồn 48dB, pin 38h, LDAC.',
+                'variants' => [],
+            ],
+
+            // ============ SMARTWATCH ============
+            [
+                'name' => 'Apple Watch Series 9 GPS 41mm',
+                'slug' => 'apple-watch-series-9-gps-41mm',
+                'category' => 'smartwatch',
+                'brand' => 'apple',
+                'price' => 10990000,
+                'sale_price' => 9990000,
+                'is_featured' => true,
+                'img' => 'apple-watch',
+                'short_description' => 'Apple Watch S9 - chip S9, màn hình 2000 nits, Double Tap.',
+                'variants' => [],
+            ],
+            [
+                'name' => 'Samsung Galaxy Watch 6 40mm',
+                'slug' => 'samsung-galaxy-watch-6-40mm',
+                'category' => 'smartwatch',
+                'brand' => 'samsung',
+                'price' => 6990000,
+                'sale_price' => 5990000,
+                'is_featured' => false,
+                'img' => 'smartwatch',
+                'short_description' => 'Galaxy Watch 6 - theo dõi sức khoẻ toàn diện, Wear OS.',
+                'variants' => [],
+            ],
+        ];
+
+        $idx = 0;
+        foreach ($products as $p) {
+            $idx++;
+            if (! isset($catMap[$p['category']], $brandMap[$p['brand']])) {
+                throw new RuntimeException("Chạy DemoCatalogSeeder trước DemoProductSeeder ({$p['slug']}).");
+            }
+
+            $skuBase = 'SP-'.str_pad((string) $idx, 4, '0', STR_PAD_LEFT);
+            $isVariable = ! empty($p['variants']) && count($p['variants']) > 1;
+
+            $product = Product::updateOrCreate(
+                ['slug' => $p['slug']],
+                [
+                    'sku' => $skuBase,
+                    'name' => $p['name'],
+                    'category_id' => $catMap[$p['category']],
+                    'brand_id' => $brandMap[$p['brand']],
+                    'product_type' => $isVariable ? 'variable' : 'simple',
+                    'short_description' => $p['short_description'],
+                    'description' => $this->makeDescription($p['category'], $p['short_description']),
+                    'price' => $p['price'],
+                    'sale_price' => $p['sale_price'] ?? null,
+                    'cost_price' => (int) round($p['price'] * 0.82),
+                    'currency' => 'VND',
+                    'weight_gram' => random_int(...self::PRODUCT_WEIGHT_RANGE),
+                    'status' => 'active',
+                    'is_featured' => (bool) ($p['is_featured'] ?? false),
+                    'published_at' => now()->subDays(random_int(0, 60)),
+                    'rating_avg' => 0,
+                    'rating_count' => 0,
+                    'sold_count' => random_int(...self::PRODUCT_SOLD_COUNT_RANGE),
+                    'meta_title' => $p['name'],
+                    'meta_description' => $p['short_description'],
+                ]
+            );
+
+            $imageUrls = $this->getProductImages($p, $idx);
+            $product->images()
+                ->whereNotIn('sort_order', array_keys($imageUrls))
+                ->delete();
+
+            foreach ($imageUrls as $k => $url) {
+                ProductImage::updateOrCreate(
+                    ['product_id' => $product->id, 'sort_order' => $k],
+                    [
+                        'url' => $url,
+                        'alt' => $p['name'],
+                        'is_primary' => $k === 0,
+                    ]
+                );
+            }
+
+            // Variants
+            $variants = ! empty($p['variants']) ? $p['variants'] : [[
+                'name' => 'Mặc định',
+                'price' => $p['price'],
+                'sale_price' => $p['sale_price'] ?? null,
+            ]];
+
+            foreach ($variants as $j => $v) {
+                $suffix = $isVariable
+                    ? str_pad((string) ($j + 1), 2, '0', STR_PAD_LEFT)
+                    : 'DEF';
+
+                ProductVariant::updateOrCreate(
+                    ['sku' => $skuBase.'-'.$suffix],
+                    [
+                        'product_id' => $product->id,
+                        'name' => $v['name'],
+                        'price' => $v['price'],
+                        'sale_price' => $v['sale_price'] ?? null,
+                        'cost_price' => (int) round($v['price'] * 0.82),
+                        'weight_gram' => random_int(...self::VARIANT_WEIGHT_RANGE),
+                        'is_default' => $j === 0,
+                        'stock' => 0,
+                        'status' => 'active',
+                        'sort_order' => $j,
+                    ]
+                );
+            }
+        }
+
+        $this->attachAttributesToRepresentativeProducts();
+
+        $this->command->info(sprintf(
+            '✅ DemoProductSeeder: %d products (%d variable), %d variants, %d images.',
+            Product::count(),
+            Product::where('product_type', 'variable')->count(),
+            ProductVariant::count(),
+            ProductImage::count(),
+        ));
+    }
+
+    private function attachAttributesToRepresentativeProducts(): void
+    {
+        $attributes = Attribute::whereIn('slug', [
+            'mau-sac',
+            'dung-luong',
+            'cpu',
+            'ram',
+        ])->get()->keyBy('slug');
+
+        if ($attributes->count() !== 4) {
+            throw new RuntimeException('Chạy AttributeSeeder trước DemoProductSeeder.');
+        }
+
+        $this->assignAttributes(
+            productSlug: 'iphone-15-128gb',
+            attributes: [$attributes['mau-sac'], $attributes['dung-luong']],
+            variantMap: [
+                'Đen 128GB' => ['mau-sac' => 'den', 'dung-luong' => '128gb'],
+                'Xanh 128GB' => ['mau-sac' => 'xanh', 'dung-luong' => '128gb'],
+                'Đen 256GB' => ['mau-sac' => 'den', 'dung-luong' => '256gb'],
+                'Xanh 256GB' => ['mau-sac' => 'xanh', 'dung-luong' => '256gb'],
+            ],
+        );
+
+        $this->assignAttributes(
+            productSlug: 'samsung-galaxy-s24-ultra-256gb',
+            attributes: [$attributes['mau-sac'], $attributes['dung-luong']],
+            variantMap: [
+                'Titan Đen 256GB' => ['mau-sac' => 'titan-den', 'dung-luong' => '256gb'],
+                'Titan Tím 256GB' => ['mau-sac' => 'titan-tim', 'dung-luong' => '256gb'],
+                'Titan Đen 512GB' => ['mau-sac' => 'titan-den', 'dung-luong' => '512gb'],
+                'Titan Tím 512GB' => ['mau-sac' => 'titan-tim', 'dung-luong' => '512gb'],
+            ],
+        );
+
+        $this->assignAttributes(
+            productSlug: 'dell-inspiron-15-3520-i5',
+            attributes: [$attributes['cpu'], $attributes['ram'], $attributes['dung-luong']],
+            variantMap: [
+                'i5 / 8GB / 512GB' => ['cpu' => 'i5', 'ram' => '8gb', 'dung-luong' => '512gb'],
+                'i5 / 16GB / 512GB' => ['cpu' => 'i5', 'ram' => '16gb', 'dung-luong' => '512gb'],
+                'i7 / 16GB / 1TB' => ['cpu' => 'i7', 'ram' => '16gb', 'dung-luong' => '1tb'],
+            ],
+        );
+
+        $this->assignAttributes(
+            productSlug: 'macbook-pro-14-m3-2023',
+            attributes: [$attributes['cpu'], $attributes['ram'], $attributes['dung-luong']],
+            variantMap: [
+                'M3 Pro 18GB/512GB' => ['cpu' => 'm3-pro', 'ram' => '18gb', 'dung-luong' => '512gb'],
+                'M3 Max 36GB/1TB' => ['cpu' => 'm3-max', 'ram' => '36gb', 'dung-luong' => '1tb'],
+            ],
+        );
+    }
+
     /**
-     * Chọn ảnh Unsplash theo keyword + index để mỗi SP có ảnh khác nhau.
+     * @param  array<int, Attribute>  $attributes
+     * @param  array<string, array<string, string>>  $variantMap
      */
-    private function pickImage(string $keyword, int $productIdx, int $imgIdx): string
+    private function assignAttributes(
+        string $productSlug,
+        array $attributes,
+        array $variantMap
+    ): void {
+        $product = Product::where('slug', $productSlug)->first();
+
+        if ($product === null) {
+            throw new RuntimeException("Không tìm thấy sản phẩm demo {$productSlug}.");
+        }
+
+        $product->productAttributes()->delete();
+
+        foreach ($attributes as $sortOrder => $attribute) {
+            $product->productAttributes()->create([
+                'attribute_id' => $attribute->id,
+                'is_variation' => true,
+                'sort_order' => $sortOrder,
+            ]);
+        }
+
+        $attributesBySlug = collect($attributes)->keyBy('slug');
+        $productImages = $product->images()->orderBy('sort_order')->pluck('url')->all();
+
+        foreach ($product->variants as $variantIndex => $variant) {
+            $mapping = $variantMap[$variant->name] ?? null;
+
+            if ($mapping === null) {
+                throw new RuntimeException("Chưa khai báo thuộc tính cho biến thể {$variant->name}.");
+            }
+
+            $valueIds = [];
+            foreach ($mapping as $attributeSlug => $valueSlug) {
+                $attribute = $attributesBySlug->get($attributeSlug);
+
+                if ($attribute === null) {
+                    throw new RuntimeException("Thuộc tính {$attributeSlug} chưa được gán cho {$productSlug}.");
+                }
+
+                $attributeValue = AttributeValue::where('attribute_id', $attribute->id)
+                    ->where('slug', $valueSlug)
+                    ->first();
+
+                if ($attributeValue === null) {
+                    throw new RuntimeException("Không tìm thấy giá trị {$valueSlug} của {$attributeSlug}.");
+                }
+
+                $valueIds[] = $attributeValue->id;
+            }
+
+            $variant->attributeValues()->sync($valueIds);
+
+            if ($productImages !== []) {
+                $variant->update([
+                    'image_url' => $productImages[$variantIndex % count($productImages)],
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Chọn ảnh Unsplash theo keyword + index để mỗi sản phẩm có ảnh phù hợp.
+     *
+     * @param  array{img: string}  $product
+     * @return array<int, string>
+     */
+    private function getProductImages(array $product, int $productIdx): array
+    {
+        $imageUrls = [];
+
+        for ($imageIdx = 1; $imageIdx <= self::PRODUCT_IMAGE_COUNT; $imageIdx++) {
+            $imageUrls[] = $this->pickImage($product['img'], $productIdx, $imageIdx);
+        }
+
+        return $imageUrls;
+    }
+
+    private function pickImage(string $keyword, int $productIdx, int $imageIdx): string
     {
         $ids = self::IMAGE_MAP[$keyword] ?? self::IMAGE_MAP['default'];
-        $id = $ids[($productIdx + $imgIdx - 1) % count($ids)];
+        $id = $ids[($productIdx + $imageIdx - 1) % count($ids)];
 
         return "https://images.unsplash.com/photo-{$id}?w=800&h=800&fit=crop&q=80";
     }
@@ -702,7 +1085,7 @@ class DemoProductSeeder extends Seeder
                 'Màn hình AMOLED/OLED sắc nét, tần số quét cao, hiển thị tốt ngoài trời.',
                 'Chip xử lý mạnh mẽ, đáp ứng tốt mọi tác vụ và game nặng.',
                 'Camera chất lượng cao với nhiều chế độ chụp đêm, chân dung, quay video 4K.',
-                'Pin dung lượng lớn, hỗ trợ sạc nhanh, dùng thoải mái 1–2 ngày.',
+                'Pin dung lượng lớn, hỗ trợ sạc nhanh, dùng thoải mái 1-2 ngày.',
                 'Hệ điều hành mượt mà, được cập nhật phần mềm dài hạn.',
             ],
             'laptop-gaming', 'laptop-van-phong', 'macbook' => [
@@ -716,7 +1099,7 @@ class DemoProductSeeder extends Seeder
                 'Màn hình lớn, màu sắc sống động, phù hợp học tập, ghi chú và giải trí.',
                 'Hiệu năng mạnh mẽ, xử lý đa nhiệm và ứng dụng đồ hoạ tốt.',
                 'Hỗ trợ bút cảm ứng và bàn phím rời (bán riêng) để tăng năng suất.',
-                'Pin dùng liên tục 8–10 giờ, sạc qua USB-C tiện lợi.',
+                'Pin dùng liên tục 8-10 giờ, sạc qua USB-C tiện lợi.',
             ],
             'tai-nghe', 'tws' => [
                 'Chất âm chi tiết: bass sâu, mid rõ, treble trong.',
@@ -732,7 +1115,7 @@ class DemoProductSeeder extends Seeder
             'smartwatch' => [
                 'Theo dõi sức khoẻ toàn diện: nhịp tim, SpO2, giấc ngủ, stress.',
                 'Màn hình AMOLED sáng, hiển thị tốt ngoài trời.',
-                'Pin dùng 1–2 ngày, sạc nhanh qua đế từ tính.',
+                'Pin dùng 1-2 ngày, sạc nhanh qua đế từ tính.',
                 'Chống nước, dùng được khi rửa tay và bơi lội.',
             ],
             'sac-cap' => [

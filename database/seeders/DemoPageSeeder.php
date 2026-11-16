@@ -3,10 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\Page;
-// Tạo nội dung trang tĩnh minh họa.
-
 use Illuminate\Database\Seeder;
 
+// Mục đích: tạo nội dung các trang tĩnh demo.
+// Phụ thuộc: không.
 class DemoPageSeeder extends Seeder
 {
     public function run(): void
@@ -16,7 +16,7 @@ class DemoPageSeeder extends Seeder
                 'slug' => 'gioi-thieu',
                 'title' => 'Giới thiệu',
                 'meta_title' => 'Giới thiệu về MTS',
-                'meta_description' => 'MTS — website thương mại điện tử B2C, đồ án tốt nghiệp.',
+                'meta_description' => 'MTS - website thương mại điện tử B2C, đồ án tốt nghiệp.',
                 'show_in_footer' => true,
                 'footer_sort' => 1,
                 'body' => <<<'HTML'
@@ -24,7 +24,7 @@ class DemoPageSeeder extends Seeder
 <p>MTS là website thương mại điện tử B2C được xây dựng trên nền tảng <strong>Laravel 13</strong>, phục vụ nhu cầu mua sắm trực tuyến các sản phẩm công nghệ: điện thoại, laptop, phụ kiện.</p>
 
 <h3>Sứ mệnh</h3>
-<p>Mang đến trải nghiệm mua sắm <em>đơn giản — nhanh chóng — an toàn</em> cho khách hàng Việt Nam.</p>
+<p>Mang đến trải nghiệm mua sắm <em>đơn giản - nhanh chóng - an toàn</em> cho khách hàng Việt Nam.</p>
 
 <h3>Giá trị cốt lõi</h3>
 <ul>
@@ -35,16 +35,16 @@ class DemoPageSeeder extends Seeder
 </ul>
 
 <h3>Liên hệ</h3>
-<p>Email: <a href="mailto:hello@example.com">hello@example.com</a><br>
-Hotline: 1900-xxxx<br>
-Địa chỉ: Hà Nội, Việt Nam</p>
+<p>Email: <a href="mailto:tcminh1411@gmail.com">tcminh1411@gmail.com</a><br>
+Hotline: 0916 123 456<br>
+Địa chỉ: Cần Thơ, Việt Nam</p>
 HTML,
                 'is_active' => true,
             ],
             [
                 'slug' => 'dieu-khoan',
                 'title' => 'Điều khoản sử dụng',
-                'meta_title' => 'Điều khoản sử dụng — MTS',
+                'meta_title' => 'Điều khoản sử dụng - MTS',
                 'meta_description' => 'Điều khoản và điều kiện sử dụng website MTS.',
                 'show_in_footer' => true,
                 'footer_sort' => 2,
@@ -70,7 +70,7 @@ HTML,
 <ul>
     <li>Áp dụng cho đơn hàng đã hoàn thành trong vòng 7 ngày.</li>
     <li>Sản phẩm phải còn nguyên hộp, đầy đủ phụ kiện.</li>
-    <li>Hoàn tiền qua chuyển khoản hoặc ví VNPay trong 3–5 ngày làm việc.</li>
+    <li>Hoàn tiền qua chuyển khoản hoặc ví VNPay trong 3-5 ngày làm việc.</li>
 </ul>
 
 <h3>4. Quyền sở hữu trí tuệ</h3>
@@ -84,7 +84,7 @@ HTML,
             [
                 'slug' => 'bao-mat',
                 'title' => 'Chính sách bảo mật',
-                'meta_title' => 'Chính sách bảo mật — MTS',
+                'meta_title' => 'Chính sách bảo mật - MTS',
                 'meta_description' => 'Chính sách bảo mật thông tin khách hàng của MTS.',
                 'show_in_footer' => true,
                 'footer_sort' => 3,
@@ -133,6 +133,6 @@ HTML,
             );
         }
 
-        $this->command->info('DemoPageSeeder: đã seed '.count($pages).' trang tĩnh.');
+        $this->command->info('DemoPageSeeder: đã seed ' . count($pages) . ' trang tĩnh.');
     }
 }

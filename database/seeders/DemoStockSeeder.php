@@ -7,17 +7,20 @@ use App\Models\ProductVariant;
 use App\Models\Warehouse;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
+// Mục đích: chia tồn kho demo giữa ba kho và đồng bộ tồn tổng của biến thể.
+// Phụ thuộc: WarehouseSeeder, DemoProductSeeder.
 class DemoStockSeeder extends Seeder
 {
+    private const STOCK_RANGE = [50, 500];
+
     public function run(): void
     {
         $warehouses = Warehouse::whereIn('code', ['HN-01', 'HCM-01', 'CT-01'])->pluck('id', 'code');
 
-        if ($warehouses->isEmpty()) {
-            $this->command->error('❌ Chưa có kho — chạy WarehouseSeeder trước.');
-
-            return;
+        if ($warehouses->count() !== 3) {
+            throw new RuntimeException('Chạy WarehouseSeeder trước DemoStockSeeder.');
         }
 
         // Tỷ lệ phân bổ stock cho 3 kho
@@ -28,11 +31,15 @@ class DemoStockSeeder extends Seeder
         ];
 
         $variants = ProductVariant::all();
+        if ($variants->isEmpty()) {
+            throw new RuntimeException('Chạy DemoProductSeeder trước DemoStockSeeder.');
+        }
+
         $totalRows = 0;
 
         DB::transaction(function () use ($warehouses, $distribution, $variants, &$totalRows) {
             foreach ($variants as $variant) {
-                $totalQty = random_int(50, 500); // Tổng tồn của variant trên toàn hệ thống
+                $totalQty = random_int(...self::STOCK_RANGE);
 
                 $allocated = 0;
                 $codes = array_keys($distribution);

@@ -15,12 +15,14 @@ use App\Models\StockAlert;
 use App\Models\User;
 use App\Models\Wishlist;
 use App\Services\InventoryService;
-// Tạo dữ liệu cá nhân mẫu phục vụ môi trường demo.
-
+use App\Support\Demo\DemoOrderInventory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
+// Mục đích: tạo giỏ hàng, đơn và dữ liệu cá nhân demo cho admin/owner.
+// Phụ thuộc: UserSeeder, DemoProductSeeder, DemoStockSeeder, ShippingSeeder.
 class DemoPersonalDataSeeder extends Seeder
 {
     private const STATUSES_ADMIN = ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'];
@@ -34,9 +36,7 @@ class DemoPersonalDataSeeder extends Seeder
     {
         $admin = User::where('email', 'admin@example.com')->first();
         if (! $admin) {
-            $this->command->error('❌ admin@example.com không tồn tại — chạy UserSeeder trước.');
-
-            return;
+            throw new RuntimeException('Chạy UserSeeder trước DemoPersonalDataSeeder.');
         }
 
         $tcminh = User::firstOrCreate(
@@ -164,9 +164,7 @@ class DemoPersonalDataSeeder extends Seeder
         $orders = [];
         $rates = ShippingRate::all();
         if ($rates->isEmpty()) {
-            $this->command->warn("  ⚠ Không có shipping rate — skip orders cho {$user->email}");
-
-            return [];
+            throw new RuntimeException('Chạy ShippingSeeder trước DemoPersonalDataSeeder.');
         }
 
         foreach ($statuses as $i => $status) {
@@ -186,7 +184,7 @@ class DemoPersonalDataSeeder extends Seeder
                 ->get();
 
             if ($variants->isEmpty()) {
-                continue;
+                throw new RuntimeException('DemoPersonalDataSeeder cần biến thể có tồn kho.');
             }
 
             $subtotal = 0;
@@ -224,7 +222,7 @@ class DemoPersonalDataSeeder extends Seeder
                 'recipient_name' => $user->full_name ?? 'Khách',
                 'recipient_phone' => '0900000000',
                 'recipient_email' => $user->email,
-                'shipping_address' => 'Địa chỉ demo — '.$user->email,
+                'shipping_address' => 'Địa chỉ demo - '.$user->email,
                 'placed_at' => $placedAt,
             ]);
 

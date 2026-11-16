@@ -3,10 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\PostCategory;
-// Tạo danh mục bài viết mẫu.
-
 use Illuminate\Database\Seeder;
 
+// Mục đích: tạo danh mục bài viết demo.
+// Phụ thuộc: không.
 class DemoPostCategorySeeder extends Seeder
 {
     public function run(): void

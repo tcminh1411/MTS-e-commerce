@@ -4,10 +4,10 @@ namespace Database\Seeders;
 
 use App\Models\Brand;
 use App\Models\Category;
-// Tạo dữ liệu danh mục và thương hiệu mẫu.
-
 use Illuminate\Database\Seeder;
 
+// Mục đích: tạo danh mục và thương hiệu demo.
+// Phụ thuộc: không.
 class DemoCatalogSeeder extends Seeder
 {
     public function run(): void
@@ -84,27 +84,31 @@ class DemoCatalogSeeder extends Seeder
 
         $parentSort = 0;
         foreach ($tree as $node) {
-            $parent = Category::create([
-                'name' => $node['name'],
-                'slug' => $node['slug'],
-                'image_url' => $node['image_url'],
-                'sort_order' => $parentSort,
-                'is_active' => true,
-                'description' => 'Danh mục '.$node['name'],
-            ]);
+            $parent = Category::updateOrCreate(
+                ['slug' => $node['slug']],
+                [
+                    'name' => $node['name'],
+                    'image_url' => $node['image_url'],
+                    'sort_order' => $parentSort,
+                    'is_active' => true,
+                    'description' => 'Danh mục '.$node['name'],
+                ]
+            );
             $parentSort += 10;
 
             $childSort = 0;
             foreach ($node['children'] as $child) {
-                Category::create([
-                    'parent_id' => $parent->id,
-                    'name' => $child['name'],
-                    'slug' => $child['slug'],
-                    'image_url' => $child['image_url'],
-                    'sort_order' => $childSort,
-                    'is_active' => true,
-                    'description' => 'Danh mục '.$child['name'],
-                ]);
+                Category::updateOrCreate(
+                    ['slug' => $child['slug']],
+                    [
+                        'parent_id' => $parent->id,
+                        'name' => $child['name'],
+                        'image_url' => $child['image_url'],
+                        'sort_order' => $childSort,
+                        'is_active' => true,
+                        'description' => 'Danh mục '.$child['name'],
+                    ]
+                );
                 $childSort += 10;
             }
         }
@@ -134,13 +138,15 @@ class DemoCatalogSeeder extends Seeder
         ];
 
         foreach ($brands as [$name, $slug, $logo]) {
-            Brand::create([
-                'name' => $name,
-                'slug' => $slug,
-                'logo_url' => $logo,
-                'description' => 'Thương hiệu '.$name,
-                'is_active' => true,
-            ]);
+            Brand::updateOrCreate(
+                ['slug' => $slug],
+                [
+                    'name' => $name,
+                    'logo_url' => $logo,
+                    'description' => 'Thương hiệu '.$name,
+                    'is_active' => true,
+                ]
+            );
         }
 
         $this->command->info('✅ DemoCatalogSeeder: '

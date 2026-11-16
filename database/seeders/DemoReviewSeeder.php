@@ -5,12 +5,19 @@ namespace Database\Seeders;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Review;
-// Tạo đánh giá mẫu cho các đơn hàng đã hoàn tất.
-
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
+// Mục đích: tạo đánh giá cho đơn hàng demo đã hoàn tất.
+// Phụ thuộc: DemoOrderSeeder, DemoProductSeeder.
 class DemoReviewSeeder extends Seeder
 {
+    private const RATING_WEIGHTS = [
+        5 => 60,
+        4 => 30,
+        3 => 10,
+    ];
+
     /**
      * Tạo đánh giá hiển thị cho các đơn hàng đã hoàn tất.
      * Idempotent: chạy lại không tạo duplicate.
@@ -38,20 +45,16 @@ class DemoReviewSeeder extends Seeder
             ->get();
 
         if ($orders->isEmpty()) {
-            $this->command->warn('⚠️  Không có order completed nào để seed review.');
-
-            return;
+            throw new RuntimeException('Chạy DemoOrderSeeder trước DemoReviewSeeder.');
         }
 
         $created = 0;
         $skipped = 0;
 
-        // Weighted rating: 60% 5 sao, 30% 4 sao, 10% 3 sao
-        $ratingPool = array_merge(
-            array_fill(0, 60, 5),
-            array_fill(0, 30, 4),
-            array_fill(0, 10, 3),
-        );
+        $ratingPool = [];
+        foreach (self::RATING_WEIGHTS as $rating => $weight) {
+            $ratingPool = array_merge($ratingPool, array_fill(0, $weight, $rating));
+        }
 
         foreach ($orders as $order) {
             if ($order->items->isEmpty()) {

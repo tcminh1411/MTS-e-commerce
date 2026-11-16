@@ -4,10 +4,10 @@ namespace Database\Seeders;
 
 use App\Models\ShippingRate;
 use App\Models\ShippingZone;
-// Tạo dữ liệu khu vực và mức phí giao hàng mẫu.
-
 use Illuminate\Database\Seeder;
 
+// Mục đích: tạo khu vực giao hàng và các mức phí.
+// Phụ thuộc: không.
 class ShippingSeeder extends Seeder
 {
     public function run(): void

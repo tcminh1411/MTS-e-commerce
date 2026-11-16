@@ -9,15 +9,30 @@ use App\Models\ProductVariant;
 use App\Models\ShippingRate;
 use App\Models\User;
 use App\Services\InventoryService;
+use App\Support\Demo\DemoOrderInventory;
 use Faker\Factory;
-// Tạo dữ liệu đơn hàng mẫu phục vụ kiểm thử và demo.
-
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
+// Mục đích: tạo 150 đơn hàng demo với trạng thái và ngày đặt phân bổ.
+// Phụ thuộc: DemoProductSeeder, DemoUserSeeder, DemoStockSeeder, ShippingSeeder.
 class DemoOrderSeeder extends Seeder
 {
+    private const STATUS_WEIGHTS = [
+        'completed' => 60,
+        'shipping' => 10,
+        'confirmed' => 10,
+        'pending' => 5,
+        'cancelled' => 15,
+    ];
+
+    private const TOTAL_ORDERS = 150;
+
+    private const DAYS_BACK = 60;
+
     /**
      * Tạo 150 orders demo trải 60 ngày gần đây.
      * User = các tài khoản @demo.local (từ DemoUserSeeder).
@@ -28,13 +43,11 @@ class DemoOrderSeeder extends Seeder
         $demoUserIds = User::where('email', 'like', '%@demo.local')->pluck('id')->all();
 
         if (empty($demoUserIds)) {
-            $this->command->error('❌ Chưa có user @demo.local — chạy DemoUserSeeder trước.');
-
-            return;
+            throw new RuntimeException('Chạy DemoUserSeeder trước DemoOrderSeeder.');
         }
 
         if (Order::whereIn('user_id', $demoUserIds)->exists()) {
-            $this->command->warn('⚠️  Đã có orders demo — bỏ qua (idempotent).');
+            $this->command->warn('⚠️  Đã có orders demo - bỏ qua (idempotent).');
 
             return;
         }
@@ -46,29 +59,21 @@ class DemoOrderSeeder extends Seeder
             ->get();
 
         if ($variants->isEmpty()) {
-            $this->command->error('❌ Không có variant nào stock > 0.');
-
-            return;
+            throw new RuntimeException('DemoOrderSeeder cần biến thể có tồn kho.');
         }
 
         $rates = ShippingRate::all();
         if ($rates->isEmpty()) {
-            $this->command->error('❌ Chưa có shipping rates.');
-
-            return;
+            throw new RuntimeException('Chạy ShippingSeeder trước DemoOrderSeeder.');
         }
 
-        // Weighted status pool: 60% completed, 10% shipping, 10% confirmed, 5% pending, 15% cancelled
-        $statusPool = array_merge(
-            array_fill(0, 60, 'completed'),
-            array_fill(0, 10, 'shipping'),
-            array_fill(0, 10, 'confirmed'),
-            array_fill(0, 5, 'pending'),
-            array_fill(0, 15, 'cancelled'),
-        );
+        $statusPool = [];
+        foreach (self::STATUS_WEIGHTS as $status => $weight) {
+            $statusPool = array_merge($statusPool, array_fill(0, $weight, $status));
+        }
 
-        $totalOrders = 150;
-        $daysBack = 60;
+        $totalOrders = self::TOTAL_ORDERS;
+        $daysBack = self::DAYS_BACK;
         $created = 0;
 
         DB::transaction(function () use (
@@ -196,7 +201,7 @@ class DemoOrderSeeder extends Seeder
     /**
      * Ghi timeline trạng thái. Mỗi bước cách nhau vài giờ để trông tự nhiên.
      */
-    private function recordHistory(Order $order, string $finalStatus, $placedAt): void
+    private function recordHistory(Order $order, string $finalStatus, Carbon $placedAt): void
     {
         $steps = match ($finalStatus) {
             'confirmed' => ['pending', 'confirmed'],

@@ -2,7 +2,8 @@
 
 namespace Database\Seeders;
 
-// Tạo vai trò và quyền sử dụng trong ứng dụng.
+// Mục đích: tạo roles và permissions nền tảng cho ứng dụng.
+// Phụ thuộc: migration của các bảng Spatie Permission.
 
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;

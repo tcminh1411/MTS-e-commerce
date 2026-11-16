@@ -2,9 +2,14 @@
 
 namespace Database\Seeders;
 
+use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Coupon;
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
+// Mục đích: tạo các mã giảm giá demo và điều kiện áp dụng.
+// Phụ thuộc: DemoCatalogSeeder.
 class CouponSeeder extends Seeder
 {
     public function run(): void
@@ -56,7 +61,7 @@ class CouponSeeder extends Seeder
             ],
             [
                 'code' => 'WELCOME50K',
-                'name' => 'Chào mừng thành viên mới — Giảm 50k',
+                'name' => 'Chào mừng thành viên mới - Giảm 50k',
                 'description' => 'Ưu đãi đặc biệt cho khách hàng mới.',
                 'type' => 'fixed',
                 'value' => 50000,
@@ -70,7 +75,7 @@ class CouponSeeder extends Seeder
             ],
             [
                 'code' => 'TECH50K',
-                'name' => 'Ưu đãi công nghệ — Giảm 50k',
+                'name' => 'Ưu đãi công nghệ - Giảm 50k',
                 'description' => 'Giảm 50.000đ cho đơn từ 400.000đ.',
                 'type' => 'fixed',
                 'value' => 50000,
@@ -84,7 +89,7 @@ class CouponSeeder extends Seeder
             ],
             [
                 'code' => 'BLACKFRIDAY',
-                'name' => 'Black Friday — Giảm 30%',
+                'name' => 'Black Friday - Giảm 30%',
                 'description' => 'Sale khủng, giảm tối đa 500.000đ cho đơn từ 1 triệu.',
                 'type' => 'percent',
                 'value' => 30,
@@ -99,7 +104,7 @@ class CouponSeeder extends Seeder
             [
                 'code' => 'SUMMER2024',
                 'name' => 'Sale hè 2024 (đã hết hạn)',
-                'description' => 'Mã cũ — dùng để test logic check thời gian.',
+                'description' => 'Mã cũ - dùng để test logic check thời gian.',
                 'type' => 'percent',
                 'value' => 15,
                 'max_discount_amount' => 100000,
@@ -113,7 +118,7 @@ class CouponSeeder extends Seeder
             [
                 'code' => 'PAUSED50K',
                 'name' => 'Mã tạm dừng (test)',
-                'description' => 'Mã bị admin tắt — dùng để test logic check is_active.',
+                'description' => 'Mã bị admin tắt - dùng để test logic check is_active.',
                 'type' => 'fixed',
                 'value' => 50000,
                 'max_discount_amount' => null,
@@ -134,6 +139,45 @@ class CouponSeeder extends Seeder
             $created++;
         }
 
+        $this->attachConditions();
+
         $this->command->info("Đã seed {$created} mã giảm giá (5 đang chạy, 1 sắp chạy, 1 hết hạn, 1 tạm dừng).");
+    }
+
+    private function attachConditions(): void
+    {
+        $sale20 = Coupon::where('code', 'SALE20')->first();
+        $tech50k = Coupon::where('code', 'TECH50K')->first();
+
+        if (! $sale20 || ! $tech50k) {
+            throw new RuntimeException('CouponSeeder không tạo được các coupon cần điều kiện áp dụng.');
+        }
+
+        $categoryIds = Category::whereIn('slug', [
+            'laptop-gaming',
+            'laptop-van-phong',
+            'macbook',
+        ])->pluck('id');
+        $brandIds = Brand::whereIn('slug', ['apple', 'samsung'])->pluck('id');
+
+        if ($categoryIds->count() !== 3 || $brandIds->count() !== 2) {
+            throw new RuntimeException('Chạy DemoCatalogSeeder trước CouponSeeder.');
+        }
+
+        $sale20->conditions()->delete();
+        foreach ($categoryIds as $categoryId) {
+            $sale20->conditions()->create([
+                'condition_type' => 'category',
+                'condition_id' => $categoryId,
+            ]);
+        }
+
+        $tech50k->conditions()->delete();
+        foreach ($brandIds as $brandId) {
+            $tech50k->conditions()->create([
+                'condition_type' => 'brand',
+                'condition_id' => $brandId,
+            ]);
+        }
     }
 }

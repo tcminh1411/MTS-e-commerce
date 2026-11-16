@@ -7,22 +7,39 @@ use App\Models\ReturnRequest;
 use App\Models\User;
 use App\Services\InventoryService;
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
+// Mục đích: tạo tối đa 15 yêu cầu trả hàng demo theo các trạng thái.
+// Phụ thuộc: DemoOrderSeeder, UserSeeder, DemoStockSeeder.
 class DemoReturnRequestSeeder extends Seeder
 {
+    private const MAX_RETURN_REQUESTS = 15;
+
+    private const STATUS_WEIGHTS = [
+        'pending' => 6,
+        'approved' => 4,
+        'rejected' => 3,
+        'refunded' => 2,
+    ];
+
     public function run(InventoryService $inventoryService): void
     {
+        $existingCount = ReturnRequest::count();
+        if ($existingCount >= self::MAX_RETURN_REQUESTS) {
+            $this->command->info('DemoReturnRequestSeeder: đã đủ dữ liệu, bỏ qua.');
+
+            return;
+        }
+
         $eligibleOrders = Order::query()
             ->where('status', 'completed')
             ->whereNotIn('id', ReturnRequest::pluck('order_id'))
-            ->inRandomOrder()
-            ->limit(15)
+            ->orderBy('id')
+            ->limit(self::MAX_RETURN_REQUESTS - $existingCount)
             ->get();
 
         if ($eligibleOrders->isEmpty()) {
-            $this->command->warn('⚠️  Không có order completed nào để tạo return request.');
-
-            return;
+            throw new RuntimeException('DemoReturnRequestSeeder cần order completed chưa có yêu cầu trả hàng.');
         }
 
         $reasons = [
@@ -36,17 +53,14 @@ class DemoReturnRequestSeeder extends Seeder
         ];
 
         $adminId = User::where('email', 'admin@example.com')->value('id');
+        if (! $adminId) {
+            throw new RuntimeException('Chạy UserSeeder trước DemoReturnRequestSeeder.');
+        }
+
         $now = now();
 
-        $distribution = [
-            'pending' => 6,
-            'approved' => 4,
-            'rejected' => 3,
-            'refunded' => 2,
-        ];
-
         $statusList = [];
-        foreach ($distribution as $status => $count) {
+        foreach (self::STATUS_WEIGHTS as $status => $count) {
             $statusList = array_merge($statusList, array_fill(0, $count, $status));
         }
 
@@ -99,8 +113,8 @@ class DemoReturnRequestSeeder extends Seeder
 
         $this->command->info(
             "✅ DemoReturnRequestSeeder: tạo {$created} return requests "
-            ."({$distribution['pending']} pending, {$distribution['approved']} approved, "
-            ."{$distribution['rejected']} rejected, {$distribution['refunded']} refunded)."
+            .'('.self::STATUS_WEIGHTS['pending'].' pending, '.self::STATUS_WEIGHTS['approved'].' approved, '
+            .self::STATUS_WEIGHTS['rejected'].' rejected, '.self::STATUS_WEIGHTS['refunded'].' refunded).'
         );
     }
 }

@@ -4,15 +4,23 @@ namespace Database\Seeders;
 
 use App\Models\Post;
 use App\Models\PostCategory;
-// Tạo các bài viết minh họa.
-
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
+// Mục đích: tạo bài viết demo, gồm bài nháp và bài đã xuất bản.
+// Phụ thuộc: DemoPostCategorySeeder.
 class DemoPostSeeder extends Seeder
 {
+    private const VIEW_COUNT_RANGE = [100, 5000];
+
     public function run(): void
     {
         $cat = PostCategory::pluck('id', 'slug')->all();
+        $requiredCategories = ['danh-gia-san-pham', 'huong-dan', 'khuyen-mai', 'tin-cong-nghe'];
+
+        if (array_diff($requiredCategories, array_keys($cat)) !== []) {
+            throw new RuntimeException('Chạy DemoPostCategorySeeder trước DemoPostSeeder.');
+        }
 
         // Helper tạo body HTML
         $makeBody = function (string $intro, array $sections): string {
@@ -97,7 +105,7 @@ class DemoPostSeeder extends Seeder
             [
                 'slug' => 'khuyen-mai-thang-10',
                 'title' => 'Khuyến mãi tháng 10: Giảm đến 30% toàn bộ phụ kiện',
-                'excerpt' => 'Chương trình ưu đãi lớn nhất năm — giảm giá sốc cho toàn bộ phụ kiện công nghệ.',
+                'excerpt' => 'Chương trình ưu đãi lớn nhất năm - giảm giá sốc cho toàn bộ phụ kiện công nghệ.',
                 'post_category_id' => $cat['khuyen-mai'] ?? null,
                 'thumbnail' => 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&h=450&fit=crop&q=80',
                 'status' => Post::STATUS_PUBLISHED,
@@ -163,11 +171,11 @@ class DemoPostSeeder extends Seeder
                     'Tai nghe Bluetooth đang ngày càng phổ biến. Đây là 5 lựa chọn tốt nhất năm 2026.',
                     [
                         ['h' => 'Top 5', 'ul' => [
-                            'Sony WF-1000XM6 — Chống ồn tốt nhất',
-                            'Apple AirPods Pro 3 — Kết nối tốt cho iPhone',
-                            'Bose QuietComfort Ultra — Âm thanh cân bằng',
-                            'Sennheiser Momentum 4 — Chất âm chi tiết',
-                            'JBL Tour Pro 3 — Pin trâu, giá tốt',
+                            'Sony WF-1000XM6 - Chống ồn tốt nhất',
+                            'Apple AirPods Pro 3 - Kết nối tốt cho iPhone',
+                            'Bose QuietComfort Ultra - Âm thanh cân bằng',
+                            'Sennheiser Momentum 4 - Chất âm chi tiết',
+                            'JBL Tour Pro 3 - Pin trâu, giá tốt',
                         ]],
                     ]
                 ),
@@ -212,7 +220,7 @@ class DemoPostSeeder extends Seeder
             [
                 'slug' => 'du-doan-cong-nghe-2027',
                 'title' => 'Dự đoán xu hướng công nghệ nổi bật năm 2027',
-                'excerpt' => 'AI, AR, xe điện tự lái — đâu là xu hướng công nghệ sẽ bùng nổ năm 2027?',
+                'excerpt' => 'AI, AR, xe điện tự lái - đâu là xu hướng công nghệ sẽ bùng nổ năm 2027?',
                 'post_category_id' => $cat['tin-cong-nghe'] ?? null,
                 'thumbnail' => 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=450&fit=crop&q=80',
                 'status' => Post::STATUS_DRAFT,
@@ -232,7 +240,7 @@ class DemoPostSeeder extends Seeder
         foreach ($posts as &$p) {
             if (! isset($p['view_count'])) {
                 $p['view_count'] = $p['status'] === Post::STATUS_PUBLISHED
-                    ? random_int(100, 5000)
+                    ? random_int(...self::VIEW_COUNT_RANGE)
                     : 0;
             }
         }
@@ -255,6 +263,6 @@ class DemoPostSeeder extends Seeder
         $draft = collect($posts)->where('status', Post::STATUS_DRAFT)->count();
 
         $totalViews = collect($posts)->sum('view_count');
-        $this->command->info('DemoPostSeeder: đã seed '.count($posts)." bài viết ($published published, $draft draft) — total view: ".number_format($totalViews));
+        $this->command->info('DemoPostSeeder: đã seed '.count($posts)." bài viết ($published published, $draft draft) - total view: ".number_format($totalViews));
     }
 }
