@@ -16,7 +16,11 @@ class PasswordConfirmationTest extends TestCase
 
         $response = $this->actingAs($user)->get('/confirm-password');
 
-        $response->assertStatus(200);
+        $response
+            ->assertOk()
+            ->assertSee('Hiện mật khẩu', false);
+
+        $this->assertSame(1, substr_count($response->getContent(), 'Hiện mật khẩu'));
     }
 
     public function test_password_can_be_confirmed(): void

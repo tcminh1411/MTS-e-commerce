@@ -20,7 +20,11 @@ class ProfileTest extends TestCase
             ->actingAs($user)
             ->get('/profile');
 
-        $response->assertOk();
+        $response
+            ->assertOk()
+            ->assertSee('Hiện mật khẩu', false);
+
+        $this->assertSame(4, substr_count($response->getContent(), 'Hiện mật khẩu'));
     }
 
     public function test_profile_information_can_be_updated(): void

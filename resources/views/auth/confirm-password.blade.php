@@ -16,10 +16,9 @@
             <label for="password" class="block text-sm font-medium mb-1"
                 >Mật khẩu</label
             >
-            <input
+            <x-password-input
                 id="password"
                 name="password"
-                type="password"
                 required
                 autocomplete="current-password"
                 autofocus

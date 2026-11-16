@@ -40,10 +40,9 @@
             <label for="password" class="block text-sm font-medium mb-1"
                 >Mật khẩu mới</label
             >
-            <input
+            <x-password-input
                 id="password"
                 name="password"
-                type="password"
                 required
                 autocomplete="new-password"
                 class="w-full border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-sage focus:ring-sage"
@@ -59,10 +58,9 @@
                 class="block text-sm font-medium mb-1"
                 >Xác nhận mật khẩu</label
             >
-            <input
+            <x-password-input
                 id="password_confirmation"
                 name="password_confirmation"
-                type="password"
                 required
                 autocomplete="new-password"
                 class="w-full border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-sage focus:ring-sage"

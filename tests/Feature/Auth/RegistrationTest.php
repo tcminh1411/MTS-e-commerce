@@ -13,7 +13,11 @@ class RegistrationTest extends TestCase
     {
         $response = $this->get('/register');
 
-        $response->assertStatus(200);
+        $response
+            ->assertOk()
+            ->assertSee('Hiện mật khẩu', false);
+
+        $this->assertSame(2, substr_count($response->getContent(), 'Hiện mật khẩu'));
     }
 
     public function test_new_users_can_register(): void

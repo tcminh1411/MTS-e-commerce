@@ -14,7 +14,11 @@ class AuthenticationTest extends TestCase
     {
         $response = $this->get('/login');
 
-        $response->assertStatus(200);
+        $response
+            ->assertOk()
+            ->assertSee('Hiện mật khẩu', false);
+
+        $this->assertSame(1, substr_count($response->getContent(), 'Hiện mật khẩu'));
     }
 
     public function test_users_can_authenticate_using_the_login_screen(): void
