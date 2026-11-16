@@ -202,10 +202,10 @@
                                         class="px-3 py-3 text-xs text-gray-600 whitespace-nowrap"
                                     >
                                         <div>
-                                            BĐ: {{ $c->starts_at?->format('d/m/Y H:i') ?? '—' }}
+                                            BĐ: {{ $c->starts_at?->format('d/m/Y H:i') ?? '-' }}
                                         </div>
                                         <div>
-                                            KT: {{ $c->ends_at?->format('d/m/Y H:i') ?? '—' }}
+                                            KT: {{ $c->ends_at?->format('d/m/Y H:i') ?? '-' }}
                                         </div>
                                     </td>
                                     <td class="px-3 py-3 text-center">

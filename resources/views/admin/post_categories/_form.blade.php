@@ -29,7 +29,7 @@
         <label class="block text-sm font-medium text-gray-700 mb-1">
             Slug
             <span class="text-xs text-gray-400 font-normal"
-                >— để trống sẽ tự sinh từ tên</span
+                >- để trống sẽ tự sinh từ tên</span
             >
         </label>
         <input

@@ -75,7 +75,7 @@
                                 {{ $c->name }}
                             </td>
                             <td class="px-4 py-3 text-gray-500">
-                                {{ $c->parent?->name ?? '—' }}
+                                {{ $c->parent?->name ?? '-' }}
                             </td>
                             <td class="px-4 py-3 text-center">
                                 {{ $c->products_count }}

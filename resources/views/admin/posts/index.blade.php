@@ -117,7 +117,7 @@
                                         class="w-16 h-10 object-cover rounded border"
                                     />
                                 @else
-                                    <span class="text-xs text-gray-300">—</span>
+                                    <span class="text-xs text-gray-300">-</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3">
@@ -135,7 +135,7 @@
                                 </div>
                             </td>
                             <td class="px-4 py-3 text-xs text-gray-600">
-                                {{ $post->category->name ?? '—' }}
+                                {{ $post->category->name ?? '-' }}
                             </td>
                             <td class="px-4 py-3 text-center">
                                 @if ($post->status === \App\Models\Post::STATUS_PUBLISHED)
@@ -158,7 +158,7 @@
                                 {{ number_format($post->view_count) }}
                             </td>
                             <td class="px-4 py-3 text-xs text-gray-500">
-                                {{ $post->published_at?->format('d/m/Y H:i') ?? '—' }}
+                                {{ $post->published_at?->format('d/m/Y H:i') ?? '-' }}
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="inline-flex items-center gap-2">

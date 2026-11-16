@@ -31,7 +31,7 @@
         <label class="block text-sm font-medium text-gray-700 mb-1">
             Slug (URL)
             <span class="text-xs text-gray-400 font-normal"
-                >— để trống sẽ tự sinh từ tiêu đề</span
+                >- để trống sẽ tự sinh từ tiêu đề</span
             >
         </label>
         <div class="flex items-center gap-2">

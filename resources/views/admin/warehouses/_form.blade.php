@@ -33,7 +33,7 @@
             maxlength="30"
             required
         />
-        <p class="text-xs text-gray-500 mt-1">VD: HN-01, HCM-01 — dùng để phân biệt kho, không đổi sau khi tạo.</p>
+        <p class="text-xs text-gray-500 mt-1">VD: HN-01, HCM-01 - dùng để phân biệt kho, không đổi sau khi tạo.</p>
         @error ('code')
             <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
         @enderror

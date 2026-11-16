@@ -1,49 +1,35 @@
 {{-- Bố cục quản trị của ứng dụng. --}}
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     <title>
         @yield ('title', 'Admin')
-        — MTS
+        - MTS
     </title>
     @vite (['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body
-    class="font-sans antialiased bg-gray-100 text-gray-900 min-h-screen"
-    x-data="{ mobileMenu: false }"
->
+<body class="font-sans antialiased bg-gray-100 text-gray-900 min-h-screen" x-data="{ mobileMenu: false }">
     <div class="flex min-h-screen">
         {{-- Mobile backdrop --}}
-        <div
-            x-show="mobileMenu"
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100"
-            x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0"
-            @click="mobileMenu = false"
-            class="fixed inset-0 bg-black/50 z-40 md:hidden"
-            style="display: none"
-        ></div>
+        <div x-show="mobileMenu" x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0" @click="mobileMenu = false"
+            class="fixed inset-0 bg-black/50 z-40 md:hidden" style="display: none"></div>
         {{-- SIDEBAR --}}
         <aside
             class="w-64 bg-gray-900 text-gray-100 flex-shrink-0 flex flex-col fixed md:sticky top-0 h-screen z-50 md:z-auto transition-transform duration-300"
             :class="mobileMenu
                 ? 'translate-x-0'
-                : '-translate-x-full md:translate-x-0'"
-        >
-            <div
-                class="h-16 flex items-center flex-shrink-0 px-5 border-b border-gray-800"
-            >
-                <a
-                    href="{{ auth()->user()->hasRole('admin') ? route('admin.dashboard') : route('admin.products.index') }}"
-                    class="text-lg font-bold text-indigo-400"
-                >
+                : '-translate-x-full md:translate-x-0'">
+            <div class="h-12 flex items-center flex-shrink-0 px-5 border-b border-gray-800 justify-center">
+                <a href="{{ auth()->user()->hasRole('admin') ? route('admin.dashboard') : route('admin.products.index') }}"
+                    class="text-lg font-bold text-indigo-400">
                     MTS Admin
                 </a>
             </div>
@@ -56,6 +42,7 @@
                 ['admin.categories.index', 'Danh mục', 'M4 6h16M4 10h16M4 14h16M4 18h16'],
                 ['admin.brands.index', 'Thương hiệu','M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0
                 002-2V8m-9 4h4'],
+                ['admin.attributes.index', 'Thuộc tính', 'M4 6h16M4 12h16M4 18h16'],
                 ['admin.products.index', 'Sản phẩm', 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
                 ['admin.warehouses.index', 'Kho hàng', 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2
                 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'],
@@ -86,7 +73,7 @@
                 @php
                 $adminOnlyRoutes = [
                 'admin.dashboard',
-                'admin.categories.index', 'admin.brands.index',
+                'admin.categories.index', 'admin.brands.index', 'admin.attributes.index',
                 'admin.coupons.index',
                 'admin.warehouses.index', 'admin.inventories.index',
                 'admin.orders.returns.index', 'admin.reviews.index',
@@ -97,91 +84,49 @@
                 @endphp
 
                 @foreach ($items as [$route, $label, $icon])
-                    @continue (in_array($route, $adminOnlyRoutes, true) && ! $isAdmin)
-                    @php $active = request()->routeIs($route) || request()->routeIs(str_replace('.index', '.*', $route));
+                @continue (in_array($route, $adminOnlyRoutes, true) && ! $isAdmin)
+                @php $active = request()->routeIs($route) || request()->routeIs(str_replace('.index', '.*', $route));
                 @endphp
-                    <a
-                        href="{{ route($route) }}"
-                        @click="mobileMenu = false"
-                        class="flex items-center gap-3 px-3 py-2 rounded-lg transition
-                          {{ $active ? 'bg-indigo-600 text-white' : 'hover:bg-gray-800 text-gray-300' }}"
-                    >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="{{ $icon }}"
-                            />
-                        </svg>
-                        {{ $label }}
-                    </a>
+                <a href="{{ route($route) }}" @click="mobileMenu = false" class="flex items-center gap-3 px-3 py-2 rounded-lg transition
+                          {{ $active ? 'bg-indigo-600 text-white' : 'hover:bg-gray-800 text-gray-300' }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $icon }}" />
+                    </svg>
+                    {{ $label }}
+                </a>
                 @endforeach
             </nav>
 
             <div class="p-3 border-t border-gray-800 text-xs flex-shrink-0">
                 <div class="mb-2 text-gray-400">
-                    {{ auth()->user()->full_name }} — {{ auth()->user()->getRoleNames()->implode(', ') }}
+                    {{ auth()->user()->full_name }} - {{ auth()->user()->getRoleNames()->implode(', ') }}
                 </div>
-                <a
-                    href="{{ route('home') }}"
-                    class="block text-indigo-400 hover:underline mb-1"
-                    >← Về storefront</a
-                >
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button class="text-red-400 hover:underline">
-                        Đăng xuất
-                    </button>
-                </form>
+                <div class="flex items-center justify-between gap-3">
+                    <a href="{{ route('home') }}" class="text-indigo-400 hover:underline">
+                        ← Về trang chủ
+                    </a>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button class="text-red-400 hover:underline">
+                            Đăng xuất
+                        </button>
+                    </form>
+                </div>
             </div>
         </aside>
 
         {{-- MAIN --}}
         <div class="flex-1 flex flex-col min-w-0">
-            <header
-                class="h-16 bg-white border-b flex items-center justify-between px-4 md:px-6"
-            >
-                <div class="flex items-center gap-2">
-                    <button
-                        @click="mobileMenu = !mobileMenu"
-                        class="md:hidden p-2 -ml-2 text-gray-700 hover:bg-gray-100 rounded-lg"
-                        aria-label="Menu"
-                    >
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M4 6h16M4 12h16M4 18h16"
-                            />
-                        </svg>
-                    </button>
-                    <div
-                        class="text-xs text-gray-400 uppercase tracking-wider hidden md:block"
-                    >
-                        Bảng quản trị
-                    </div>
-                </div>
-                <div class="text-sm text-gray-500 hidden md:block">
-                    {{ now()->format('d/m/Y H:i') }}
-                </div>
-            </header>
-
             <main class="flex-1 p-6 overflow-x-auto font-sans text-sm text-gray-900">
                 @if (session('success'))
-                    <div
-                        class="mb-4 p-3 rounded bg-green-100 text-green-800 text-sm"
-                    >
-                        {{ session('success') }}
-                    </div>
+                <div class="mb-4 p-3 rounded bg-green-100 text-green-800 text-sm">
+                    {{ session('success') }}
+                </div>
                 @endif
                 @if (session('error'))
-                    <div
-                        class="mb-4 p-3 rounded bg-red-100 text-red-800 text-sm"
-                    >
-                        {{ session('error') }}
-                    </div>
+                <div class="mb-4 p-3 rounded bg-red-100 text-red-800 text-sm">
+                    {{ session('error') }}
+                </div>
                 @endif
 
                 @yield ('content')
@@ -189,4 +134,5 @@
         </div>
     </div>
 </body>
+
 </html>

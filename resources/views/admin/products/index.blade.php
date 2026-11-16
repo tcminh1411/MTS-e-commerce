@@ -124,10 +124,10 @@
                                 </div>
                             </td>
                             <td class="px-4 py-3">
-                                {{ $p->category?->name ?? '—' }}
+                                {{ $p->category?->name ?? '-' }}
                             </td>
                             <td class="px-4 py-3">
-                                {{ $p->brand?->name ?? '—' }}
+                                {{ $p->brand?->name ?? '-' }}
                             </td>
                             <td class="px-4 py-3 text-right">
                                 @if ($p->is_on_sale)

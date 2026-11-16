@@ -56,7 +56,7 @@
                             {{ $return->user?->full_name ?? 'Guest' }}
                         </div>
                         <div class="text-xs text-gray-500">
-                            {{ $return->user?->email ?? '—' }}
+                            {{ $return->user?->email ?? '-' }}
                         </div>
                     </div>
                     <div>
@@ -111,7 +111,7 @@
                     @if ($return->processedBy)
                         <div class="text-xs text-gray-500 mt-3">
                             Xử lý bởi: {{ $return->processedBy->full_name }}
-                            @if ($return->processed_at) —{{ $return->processed_at->format('d/m/Y H:i') }} @endif
+                            @if ($return->processed_at) -{{ $return->processed_at->format('d/m/Y H:i') }} @endif
                         </div>
                     @endif
                 </div>

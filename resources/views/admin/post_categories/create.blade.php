@@ -6,19 +6,16 @@
 
 @section ('content')
     <div class="max-w-3xl">
-        <div class="mb-4">
-            <a
-                href="{{ route('admin.post_categories.index') }}"
-                class="text-sm text-indigo-600 hover:underline"
-            >
-                ← Danh sách danh mục
-            </a>
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold">Thêm danh mục blog</h1>
+            <p class="text-sm text-gray-500">
+                <a href="{{ route('admin.post_categories.index') }}" class="text-indigo-600 hover:underline">
+                    ← Quay lại danh sách
+                </a>
+            </p>
         </div>
 
         <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">
-                Thêm danh mục blog mới
-            </h2>
             @include ('admin.post_categories._form')
         </div>
     </div>

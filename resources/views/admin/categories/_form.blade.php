@@ -42,13 +42,13 @@
                 name="parent_id"
                 class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-                <option value="">— Không có (danh mục gốc) —</option>
+                <option value="">- Không có (danh mục gốc) -</option>
                 @foreach ($parents as $p)
                     <option
                         value="{{ $p->id }}"
                         @selected (old('parent_id', $category->parent_id) == $p->id)
                     >
-                        {{ $p->parent_id ? '— ' : '' }}{{ $p->name }}
+                        {{ $p->parent_id ? '- ' : '' }}{{ $p->name }}
                     </option>
                 @endforeach
             </select>

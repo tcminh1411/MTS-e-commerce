@@ -98,14 +98,14 @@
                         <tr class="border-b last:border-0 hover:bg-gray-50">
                             <td class="px-4 py-3">{{ $r->id }}</td>
                             <td class="px-4 py-3 font-mono">
-                                {{ $r->order?->order_number ?? '—' }}
+                                {{ $r->order?->order_number ?? '-' }}
                             </td>
                             <td class="px-4 py-3">
                                 <div class="font-medium">
                                     {{ $r->user?->full_name ?? 'Guest' }}
                                 </div>
                                 <div class="text-xs text-gray-500">
-                                    {{ $r->user?->email ?? '—' }}
+                                    {{ $r->user?->email ?? '-' }}
                                 </div>
                             </td>
                             <td class="px-4 py-3 text-right whitespace-nowrap">

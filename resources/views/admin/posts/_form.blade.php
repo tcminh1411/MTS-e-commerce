@@ -36,7 +36,7 @@
         <label class="block text-sm font-medium text-gray-700 mb-1">
             Slug (URL)
             <span class="text-xs text-gray-400 font-normal"
-                >— để trống sẽ tự sinh từ tiêu đề</span
+                >- để trống sẽ tự sinh từ tiêu đề</span
             >
         </label>
         <div class="flex items-center gap-2">
@@ -64,7 +64,7 @@
                 name="post_category_id"
                 class="w-full rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
             >
-                <option value="">— Chưa phân loại —</option>
+                <option value="">- Chưa phân loại -</option>
                 @foreach ($categories as $cat)
                     <option
                         value="{{ $cat->id }}"
@@ -106,7 +106,7 @@
         <label class="block text-sm font-medium text-gray-700 mb-1">
             Ngày đăng
             <span class="text-xs text-gray-400 font-normal"
-                >— để trống sẽ tự lấy thời điểm hiện tại khi đăng</span
+                >- để trống sẽ tự lấy thời điểm hiện tại khi đăng</span
             >
         </label>
         <input

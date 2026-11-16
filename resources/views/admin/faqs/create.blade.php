@@ -6,7 +6,7 @@
 
 @section ('content')
     <div class="mb-6">
-        <h1 class="text-2xl font-bold">Thêm FAQ mới</h1>
+        <h1 class="text-2xl font-bold">Thêm FAQ</h1>
         <p class="text-sm text-gray-500">
             <a
                 href="{{ route('admin.faqs.index') }}"

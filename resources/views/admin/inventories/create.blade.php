@@ -1,9 +1,18 @@
 {{-- Mẫu giao diện tạo mới tồn kho trong trang quản trị. --}}
 @extends ('layouts.admin')
-@section ('title', 'Nhập / Xuất kho')
-@section ('page_title', 'Nhập / Xuất kho')
+@section ('title', 'Thêm nhập / xuất kho')
+@section ('page_title', 'Thêm nhập / xuất kho')
 
 @section ('content')
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold">Thêm nhập / xuất kho</h1>
+        <p class="text-sm text-gray-500">
+            <a href="{{ route('admin.inventories.index') }}" class="text-indigo-600 hover:underline">
+                ← Quay lại danh sách
+            </a>
+        </p>
+    </div>
+
     <div class="bg-white rounded-xl shadow-sm p-6 max-w-3xl">
         <p class="text-sm text-gray-600 mb-5">Chọn kho + sản phẩm + loại thao tác. Sau khi lưu, tồn kho của variant và lịch sử <span class="font-mono">stock_movements</span> sẽ được cập nhật tự động.</p>
 
@@ -24,13 +33,13 @@
                         required
                         class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     >
-                        <option value="">— Chọn kho —</option>
+                        <option value="">- Chọn kho -</option>
                         @foreach ($warehouses as $w)
                             <option
                                 value="{{ $w->id }}"
                                 @selected (old('warehouse_id', $selectedWarehouseId) == $w->id)
                             >
-                                {{ $w->code }} — {{ $w->name }}
+                                {{ $w->code }} - {{ $w->name }}
                             </option>
                         @endforeach
                     </select>
@@ -52,7 +61,7 @@
                         required
                         class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     >
-                        <option value="">— Chọn sản phẩm —</option>
+                        <option value="">- Chọn sản phẩm -</option>
                         @foreach ($variants as $v)
                             <option
                                 value="{{ $v->id }}"
@@ -128,7 +137,7 @@
                         value="{{ old('quantity', 0) }}"
                         class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     />
-                    <p class="text-xs text-gray-500 mt-1">Với "Điều chỉnh" — đây là số tồn <strong>mới</strong> muốn đặt, không phải delta.</p>
+                    <p class="text-xs text-gray-500 mt-1">Với "Điều chỉnh" - đây là số tồn <strong>mới</strong> muốn đặt, không phải delta.</p>
                     @error ('quantity')
                         <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
                     @enderror

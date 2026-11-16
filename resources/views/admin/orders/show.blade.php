@@ -101,7 +101,7 @@
                     <div>
                         <dt class="text-gray-500">Email</dt>
                         <dd class="font-medium">
-                            {{ $order->recipient_email ?? '—' }}
+                            {{ $order->recipient_email ?? '-' }}
                         </dd>
                     </div>
                     <div>
@@ -167,7 +167,7 @@
                                 <td
                                     class="px-4 py-3 font-mono text-xs text-gray-500"
                                 >
-                                    {{ $item->sku ?? '—' }}
+                                    {{ $item->sku ?? '-' }}
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     {{ number_format($item->unit_price, 0, ',', '.') }} ₫
@@ -251,13 +251,13 @@
                     <div>
                         <dt class="text-gray-500">Khu vực</dt>
                         <dd class="font-medium">
-                            {{ $order->shippingZone?->name ?? '—' }}
+                            {{ $order->shippingZone?->name ?? '-' }}
                         </dd>
                     </div>
                     <div>
                         <dt class="text-gray-500">Phương thức vận chuyển</dt>
                         <dd class="font-medium">
-                            {{ $order->shipping_rate_name ?? '—' }}
+                            {{ $order->shipping_rate_name ?? '-' }}
                         </dd>
                     </div>
                     <div>

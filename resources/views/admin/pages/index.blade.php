@@ -130,7 +130,7 @@
                                         Footer #{{ $page->footer_sort }}
                                     </span>
                                 @else
-                                    <span class="text-xs text-gray-300">—</span>
+                                    <span class="text-xs text-gray-300">-</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-xs text-gray-500">

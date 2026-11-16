@@ -15,7 +15,7 @@
                 >
             </h1>
             <p class="text-sm text-gray-500">
-                {{ $coupon->name }} — tổng {{ $coupon->usages()->count() }} lượt
+                {{ $coupon->name }} - tổng {{ $coupon->usages()->count() }} lượt
             </p>
         </div>
         <a
@@ -55,7 +55,7 @@
                                     {{ $u->user?->full_name ?? 'Guest' }}
                                 </div>
                                 <div class="text-xs text-gray-500">
-                                    {{ $u->user?->email ?? '—' }}
+                                    {{ $u->user?->email ?? '-' }}
                                 </div>
                             </td>
                             <td class="px-4 py-3">
@@ -67,11 +67,11 @@
                                         {{ $u->order->order_number }}
                                     </a>
                                 @else
-                                    <span class="text-gray-400">—</span>
+                                    <span class="text-gray-400">-</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-right whitespace-nowrap">
-                                {{ $u->order ? number_format($u->order->total, 0, ',', '.') . 'đ' : '—' }}
+                                {{ $u->order ? number_format($u->order->total, 0, ',', '.') . 'đ' : '-' }}
                             </td>
                             <td class="px-4 py-3">
                                 @if ($u->order)
@@ -80,7 +80,7 @@
                                         >{{ $u->order->status }}</span
                                     >
                                 @else
-                                    <span class="text-gray-400">—</span>
+                                    <span class="text-gray-400">-</span>
                                 @endif
                             </td>
                             <td

@@ -37,7 +37,7 @@
                             value="{{ $w->id }}"
                             @selected ((string) $warehouseId === (string) $w->id)
                         >
-                            {{ $w->code }} — {{ $w->name }}
+                            {{ $w->code }} - {{ $w->name }}
                         </option>
                     @endforeach
                 </select>
@@ -90,17 +90,17 @@
                             <td class="px-4 py-3">
                                 <span
                                     class="font-mono text-gray-700"
-                                    >{{ $inv->warehouse?->code ?? '—' }}</span
+                                    >{{ $inv->warehouse?->code ?? '-' }}</span
                                 >
                                 <div class="text-xs text-gray-500">
                                     {{ $inv->warehouse?->name }}
                                 </div>
                             </td>
                             <td class="px-4 py-3 font-mono text-gray-700">
-                                {{ $inv->variant?->sku ?? '—' }}
+                                {{ $inv->variant?->sku ?? '-' }}
                             </td>
                             <td class="px-4 py-3">
-                                {{ $inv->variant?->product?->name ?? '—' }}
+                                {{ $inv->variant?->product?->name ?? '-' }}
                                 @if ($inv->variant?->is_default)
                                     <span class="ml-1 text-xs text-gray-500"
                                         >(Mặc định)</span

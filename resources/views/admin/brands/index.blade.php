@@ -77,11 +77,11 @@
                                         />
                                     @else
                                         <span class="text-xs text-gray-400"
-                                            >—</span
+                                            >-</span
                                         >
                                     @endif
                                 @else
-                                    <span class="text-gray-400">—</span>
+                                    <span class="text-gray-400">-</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3 font-medium">

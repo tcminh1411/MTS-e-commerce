@@ -76,13 +76,13 @@
                                 {{ $w->name }}
                             </td>
                             <td class="px-4 py-3 text-gray-600">
-                                {{ $w->phone ?: '—' }}
+                                {{ $w->phone ?: '-' }}
                             </td>
                             <td
                                 class="px-4 py-3 text-gray-600 max-w-xs truncate"
                                 title="{{ $w->address }}"
                             >
-                                {{ $w->address ?: '—' }}
+                                {{ $w->address ?: '-' }}
                             </td>
                             <td class="px-4 py-3 text-center">
                                 {{ $w->inventories_count }}

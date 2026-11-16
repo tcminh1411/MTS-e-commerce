@@ -145,7 +145,7 @@
                                         >
                                     </td>
                                     <td class="px-3 py-3 text-gray-700 break-words">
-                                        {{ \Illuminate\Support\Str::limit($rv->comment, 120) ?: '—' }}
+                                        {{ \Illuminate\Support\Str::limit($rv->comment, 120) ?: '-' }}
                                     </td>
                                     <td class="px-3 py-3">
                                         <span
