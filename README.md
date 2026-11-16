@@ -18,9 +18,10 @@ Website thương mại điện tử B2C xây dựng bằng Laravel. Dự án ph�
 
 - Dashboard doanh thu, đơn hàng, khách hàng, sản phẩm bán chạy và hàng sắp hết.
 - Quản lý sản phẩm, biến thể, danh mục, thương hiệu và ảnh.
+- Quản lý thuộc tính sản phẩm như màu sắc, kích cỡ; tạo biến thể theo giá trị thuộc tính và thêm ảnh riêng cho từng biến thể.
 - Quản lý nhiều kho, nhập/xuất/điều chỉnh số lượng và lịch sử biến động tồn.
 - Xử lý đơn hàng, chọn kho khi chuyển đơn sang giao hàng, quản lý thanh toán và đổi trả.
-- Quản lý mã giảm giá, đánh giá, banner, FAQ, trang tĩnh và nội dung blog.
+- Quản lý mã giảm giá có thể giới hạn theo danh mục, thương hiệu hoặc sản phẩm; quản lý đánh giá, banner, FAQ, trang tĩnh và nội dung blog.
 - Phân quyền `admin`, `staff` và `customer`.
 
 ## Công nghệ

@@ -3,8 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Coupon;
+use App\Models\Product;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -61,17 +66,24 @@ class CouponController extends Controller
             'starts_at' => now(),
         ]);
 
-        return view('admin.coupons.create', compact('coupon'));
+        return view('admin.coupons.create', [
+            'coupon' => $coupon,
+            ...$this->conditionFormData(),
+        ]);
     }
 
     public function store(Request $request)
     {
         $data = $this->validateData($request);
+        $conditions = $this->extractConditions($data);
         $data['code'] = strtoupper(trim($data['code']));
         $data['used_count'] = 0;
         $data['is_active'] = $request->boolean('is_active');
 
-        Coupon::create($data);
+        DB::transaction(function () use ($data, $conditions): void {
+            $coupon = Coupon::create($data);
+            $this->syncConditions($coupon, $conditions);
+        });
 
         return redirect()
             ->route('admin.coupons.index')
@@ -80,17 +92,26 @@ class CouponController extends Controller
 
     public function edit(Coupon $coupon)
     {
-        return view('admin.coupons.edit', compact('coupon'));
+        $coupon->load('conditions');
+
+        return view('admin.coupons.edit', [
+            'coupon' => $coupon,
+            ...$this->conditionFormData($coupon),
+        ]);
     }
 
     public function update(Request $request, Coupon $coupon)
     {
         $data = $this->validateData($request, $coupon->id);
+        $conditions = $this->extractConditions($data);
         $data['code'] = strtoupper(trim($data['code']));
         $data['is_active'] = $request->boolean('is_active');
         unset($data['used_count']); // không cho sửa tay
 
-        $coupon->update($data);
+        DB::transaction(function () use ($coupon, $data, $conditions): void {
+            $coupon->update($data);
+            $this->syncConditions($coupon, $conditions);
+        });
 
         return redirect()
             ->route('admin.coupons.index')
@@ -146,6 +167,13 @@ class CouponController extends Controller
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'is_active' => ['nullable', 'boolean'],
+            'limit_conditions' => ['nullable', 'boolean'],
+            'condition_categories' => ['nullable', 'array'],
+            'condition_categories.*' => ['integer', 'distinct', 'exists:categories,id'],
+            'condition_brands' => ['nullable', 'array'],
+            'condition_brands.*' => ['integer', 'distinct', 'exists:brands,id'],
+            'condition_products' => ['nullable', 'array'],
+            'condition_products.*' => ['integer', 'distinct', 'exists:products,id'],
         ], [
             'code.required' => 'Vui lòng nhập mã.',
             'code.regex' => 'Mã chỉ gồm chữ cái, số và dấu gạch dưới.',
@@ -155,7 +183,21 @@ class CouponController extends Controller
             'value.required' => 'Vui lòng nhập giá trị.',
             'value.min' => 'Giá trị phải lớn hơn 0.',
             'ends_at.after_or_equal' => 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.',
+            'condition_categories.*.exists' => 'Danh mục được chọn không tồn tại.',
+            'condition_brands.*.exists' => 'Thương hiệu được chọn không tồn tại.',
+            'condition_products.*.exists' => 'Sản phẩm được chọn không tồn tại.',
         ]);
+
+        if (
+            $request->boolean('limit_conditions')
+            && empty($data['condition_categories'])
+            && empty($data['condition_brands'])
+            && empty($data['condition_products'])
+        ) {
+            throw ValidationException::withMessages([
+                'condition_categories' => 'Vui lòng chọn ít nhất một điều kiện áp dụng.',
+            ]);
+        }
 
         // percent: bắt buộc max_discount_amount, value 1..100
         if ($data['type'] === 'percent') {
@@ -177,5 +219,115 @@ class CouponController extends Controller
         $data['min_order_amount'] = (int) ($data['min_order_amount'] ?? 0);
 
         return $data;
+    }
+
+    /**
+     * @return array{
+     *     categories: Collection<int, Category>,
+     *     brands: Collection<int, Brand>,
+     *     products: Collection<int, Product>,
+     *     selectedCategories: array<int, int>,
+     *     selectedBrands: array<int, int>,
+     *     selectedProducts: array<int, int>,
+     *     hasConditions: bool
+     * }
+     */
+    private function conditionFormData(?Coupon $coupon = null): array
+    {
+        $conditions = $coupon?->conditions ?? collect();
+        $selectedCategories = $conditions
+            ->where('condition_type', 'category')
+            ->pluck('condition_id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+        $selectedBrands = $conditions
+            ->where('condition_type', 'brand')
+            ->pluck('condition_id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+        $selectedProducts = $conditions
+            ->where('condition_type', 'product')
+            ->pluck('condition_id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        $categories = Category::withTrashed()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+        $brands = Brand::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+        $products = Product::query()
+            ->orderBy('name')
+            ->limit(200)
+            ->get(['id', 'name']);
+        $additionalSelectedProducts = Product::withTrashed()
+            ->whereIn('id', $selectedProducts)
+            ->whereNotIn('id', $products->modelKeys())
+            ->get(['id', 'name']);
+        $products = $products->concat($additionalSelectedProducts)
+            ->sortBy('name')
+            ->values();
+
+        $hasConditions = $selectedCategories !== []
+            || $selectedBrands !== []
+            || $selectedProducts !== [];
+
+        return compact(
+            'categories',
+            'brands',
+            'products',
+            'selectedCategories',
+            'selectedBrands',
+            'selectedProducts',
+            'hasConditions',
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, array<int, int>>
+     */
+    private function extractConditions(array &$data): array
+    {
+        $limitConditions = $data['limit_conditions'] ?? false;
+        unset($data['limit_conditions']);
+
+        $conditions = [
+            'category' => $limitConditions ? array_map('intval', $data['condition_categories'] ?? []) : [],
+            'brand' => $limitConditions ? array_map('intval', $data['condition_brands'] ?? []) : [],
+            'product' => $limitConditions ? array_map('intval', $data['condition_products'] ?? []) : [],
+        ];
+
+        unset(
+            $data['condition_categories'],
+            $data['condition_brands'],
+            $data['condition_products'],
+        );
+
+        return $conditions;
+    }
+
+    /**
+     * @param  array<string, array<int, int>>  $conditions
+     */
+    private function syncConditions(Coupon $coupon, array $conditions): void
+    {
+        $coupon->conditions()->delete();
+
+        $newConditions = [];
+
+        foreach ($conditions as $conditionType => $conditionIds) {
+            foreach ($conditionIds as $conditionId) {
+                $newConditions[] = [
+                    'condition_type' => $conditionType,
+                    'condition_id' => $conditionId,
+                ];
+            }
+        }
+
+        if ($newConditions !== []) {
+            $coupon->conditions()->createMany($newConditions);
+        }
     }
 }
