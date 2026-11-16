@@ -22,8 +22,8 @@
             variants: @js($variantOptions),
             selectedVariantId: @js($selectedVariantId),
             quantity: 1,
-            mainImage: @js($initialImage),
-            defaultImage: @js($product->images->firstWhere('is_primary', true)?->url ?? $product->images->first()?->url),
+            mainImage: @js($initialImage ?: asset('images/product-placeholder.svg')),
+            defaultImage: @js($product->images->firstWhere('is_primary', true)?->url ?? $product->images->first()?->url ?? asset('images/product-placeholder.svg')),
             get selectedVariant() {
                 return this.variants.find((variant) => variant.id === Number(this.selectedVariantId)) ?? null;
             },
@@ -48,20 +48,14 @@
             <div
                 class="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3"
             >
-                @if ($initialImage)
-                    <img
-                        id="mainImg"
-                        src="{{ $initialImage }}"
-                        x-bind:src="mainImage"
-                        class="w-full h-full object-cover"
-                    />
-                @else
-                    <div
-                        class="w-full h-full flex items-center justify-center text-gray-400"
-                    >
-                        No image
-                    </div>
-                @endif
+                <img
+                    id="mainImg"
+                    src="{{ $initialImage ?: asset('images/product-placeholder.svg') }}"
+                    x-bind:src="mainImage"
+                    onerror="this.onerror=null;this.src='{{ asset('images/product-placeholder.svg') }}';"
+                    alt="{{ $product->name }}"
+                    class="w-full h-full object-cover"
+                />
             </div>
 
             @if ($product->images->count() > 1)
@@ -75,6 +69,8 @@
                         >
                             <img
                                 src="{{ $img->url }}"
+                                onerror="this.onerror=null;this.src='{{ asset('images/product-placeholder.svg') }}';"
+                                alt="{{ $product->name }}"
                                 class="w-full h-full object-cover"
                             />
                         </button>

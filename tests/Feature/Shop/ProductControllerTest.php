@@ -63,6 +63,34 @@ class ProductControllerTest extends TestCase
             ->assertSee('selectVariant(variant.id)', false);
     }
 
+    public function test_product_detail_builds_public_url_for_local_variant_image(): void
+    {
+        $product = Product::create([
+            'name' => 'Local image product',
+            'slug' => 'local-image-product',
+            'product_type' => 'variable',
+            'price' => 100000,
+            'status' => 'active',
+        ]);
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'LOCAL-IMAGE',
+            'name' => 'Blue',
+            'price' => 120000,
+            'image_url' => 'variants/blue.jpg',
+            'is_default' => true,
+            'stock' => 1,
+            'status' => 'active',
+        ]);
+
+        $this->get(route('products.show', $product->slug))
+            ->assertOk()
+            ->assertViewHas('variantOptions', function ($variants) use ($variant): bool {
+                return $variants->firstWhere('id', $variant->id)['image']
+                    === asset('storage/variants/blue.jpg');
+            });
+    }
+
     public function test_variable_product_without_variants_still_renders_for_purchase(): void
     {
         $product = Product::create([

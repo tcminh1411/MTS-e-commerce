@@ -4,18 +4,12 @@
     class="bg-white rounded-xl shadow-sm hover:shadow-md transition overflow-hidden flex flex-col"
 >
     <div class="aspect-square bg-gray-100 overflow-hidden">
-        @if ($product->thumbnail)
-            <img
-                src="{{ $product->thumbnail }}"
-                class="w-full h-full object-cover"
-            />
-        @else
-            <div
-                class="w-full h-full flex items-center justify-center text-gray-400 text-sm"
-            >
-                No image
-            </div>
-        @endif
+        <img
+            src="{{ $product->thumbnail ?? asset('images/product-placeholder.svg') }}"
+            onerror="this.onerror=null;this.src='{{ asset('images/product-placeholder.svg') }}';"
+            alt="{{ $product->name }}"
+            class="w-full h-full object-cover"
+        />
     </div>
     <div class="p-3 flex-1 flex flex-col">
         <div class="text-xs text-gray-500 mb-1">
