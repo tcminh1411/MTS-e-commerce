@@ -219,7 +219,7 @@
                 Tiếp tục mua sắm
             </a>
             @auth
-                {{-- Route orders.index sẽ có ở Ngày 4 — bọc Route::has để tránh lỗi --}}
+                {{-- Route orders.index sẽ có ở Ngày 4 - bọc Route::has để tránh lỗi --}}
                 @if (Route::has('orders.index'))
                     <a
                         href="{{ route('orders.index') }}"

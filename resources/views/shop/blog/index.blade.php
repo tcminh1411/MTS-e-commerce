@@ -1,7 +1,7 @@
 {{-- Danh sách bài viết blog. --}}
 @extends ('layouts.storefront')
 
-@section ('title', 'Blog — Tin tức & Hướng dẫn')
+@section ('title', 'Blog - Tin tức & Hướng dẫn')
 
 @section ('content')
     <div class="space-y-6">

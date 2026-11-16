@@ -224,7 +224,7 @@
         <div
             class="max-w-7xl mx-auto px-4 py-6 text-sm text-gray-500 flex justify-between"
         >
-            <span>© {{ date('Y') }} MTS — Đồ án tốt nghiệp</span>
+            <span>© {{ date('Y') }} MTS - Đồ án tốt nghiệp</span>
             <span>Laravel {{ app()->version() }}</span>
         </div>
     </footer>

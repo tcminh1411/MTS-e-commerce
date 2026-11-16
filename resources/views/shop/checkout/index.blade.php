@@ -123,7 +123,7 @@
                             >
                                 @foreach ($zones as $zone)
                                     <option value="{{ $zone->id }}">
-                                        {{ $zone->name }} — {{ implode(', ', $zone->provinces ?? []) }}
+                                        {{ $zone->name }} - {{ implode(', ', $zone->provinces ?? []) }}
                                     </option>
                                 @endforeach
                             </select>
@@ -149,9 +149,9 @@
                                             >{{ $rate->name }}</span
                                         >
                                         <span class="text-gray-600 ml-2">
-                                            — {{ number_format($rate->fee, 0, ',', '.') }} ₫
+                                            - {{ number_format($rate->fee, 0, ',', '.') }} ₫
                                             @if ($rate->estimated_days_min)
-                                                (dự kiến {{ $rate->estimated_days_min }}–{{ $rate->estimated_days_max }} ngày)
+                                                (dự kiến {{ $rate->estimated_days_min }}-{{ $rate->estimated_days_max }} ngày)
                                             @endif
                                         </span>
                                     </label>
