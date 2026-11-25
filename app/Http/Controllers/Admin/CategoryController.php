@@ -37,7 +37,7 @@ class CategoryController extends Controller
     {
         return view('admin.categories.create', [
             'category' => new Category,
-            'parents' => $this->parentOptions(),
+            'categories' => $this->getCategoryTree(),
         ]);
     }
 
@@ -59,7 +59,7 @@ class CategoryController extends Controller
     {
         return view('admin.categories.edit', [
             'category' => $category,
-            'parents' => $this->parentOptions($category->id),
+            'categories' => $this->getCategoryTree($category->id),
         ]);
     }
 
@@ -127,11 +127,49 @@ class CategoryController extends Controller
         return $slug;
     }
 
-    private function parentOptions(?int $excludeId = null)
+    /**
+     * @return array<int, Category>
+     */
+    private function getCategoryTree(?int $excludeId = null): array
     {
-        return Category::query()
-            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+        $categories = Category::query()
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->get(['id', 'name', 'parent_id']);
+        $childrenByParent = [];
+
+        foreach ($categories as $category) {
+            $parentKey = $category->parent_id === null ? 'root' : (string) $category->parent_id;
+            $childrenByParent[$parentKey][] = $category;
+        }
+
+        $visited = [];
+        $flatten = function (?int $parentId, string $prefix) use (
+            &$flatten,
+            &$visited,
+            $childrenByParent,
+            $excludeId
+        ): array {
+            $parentKey = $parentId === null ? 'root' : (string) $parentId;
+            $result = [];
+
+            foreach ($childrenByParent[$parentKey] ?? [] as $category) {
+                if ($category->id === $excludeId || isset($visited[$category->id])) {
+                    continue;
+                }
+
+                $visited[$category->id] = true;
+                $category->display_name = $prefix.$category->name;
+                $result[] = $category;
+                $result = array_merge(
+                    $result,
+                    $flatten($category->id, $prefix.'--- ')
+                );
+            }
+
+            return $result;
+        };
+
+        return $flatten(null, '');
     }
 }

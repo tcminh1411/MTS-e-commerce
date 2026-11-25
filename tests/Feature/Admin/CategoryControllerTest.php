@@ -43,6 +43,54 @@ class CategoryControllerTest extends TestCase
             ->assertDontSee('Điện thoại');
     }
 
+    public function test_create_form_displays_category_options_as_a_hierarchy(): void
+    {
+        $admin = $this->admin();
+        $root = Category::create(['name' => 'Điện tử', 'slug' => 'dien-tu', 'sort_order' => 1]);
+        $child = Category::create([
+            'name' => 'Điện thoại',
+            'slug' => 'dien-thoai',
+            'parent_id' => $root->id,
+            'sort_order' => 1,
+        ]);
+        Category::create([
+            'name' => 'Android',
+            'slug' => 'android',
+            'parent_id' => $child->id,
+            'sort_order' => 1,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.categories.create'))
+            ->assertOk()
+            ->assertSee('Điện tử')
+            ->assertSee('--- Điện thoại')
+            ->assertSee('--- --- Android');
+    }
+
+    public function test_edit_form_hides_category_and_its_descendants_from_parent_options(): void
+    {
+        $admin = $this->admin();
+        $root = Category::create(['name' => 'Điện tử', 'slug' => 'dien-tu']);
+        $category = Category::create([
+            'name' => 'Điện thoại',
+            'slug' => 'dien-thoai',
+            'parent_id' => $root->id,
+        ]);
+        $descendant = Category::create([
+            'name' => 'Android',
+            'slug' => 'android',
+            'parent_id' => $category->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.categories.edit', $category))
+            ->assertOk()
+            ->assertSee('Điện tử')
+            ->assertDontSee('<option value="'.$category->id.'"', false)
+            ->assertDontSee('<option value="'.$descendant->id.'"', false);
+    }
+
     public function test_store_generates_unique_slug(): void
     {
         $admin = $this->admin();

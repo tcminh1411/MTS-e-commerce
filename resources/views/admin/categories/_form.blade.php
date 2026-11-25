@@ -40,15 +40,16 @@
             <label class="block font-medium mb-1">Danh mục cha</label>
             <select
                 name="parent_id"
+                id="parent_id"
                 class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
                 <option value="">- Không có (danh mục gốc) -</option>
-                @foreach ($parents as $p)
+                @foreach ($categories as $cat)
                     <option
-                        value="{{ $p->id }}"
-                        @selected (old('parent_id', $category->parent_id) == $p->id)
+                        value="{{ $cat->id }}"
+                        @selected (old('parent_id', $category->parent_id) == $cat->id)
                     >
-                        {{ $p->parent_id ? '- ' : '' }}{{ $p->name }}
+                        {{ $cat->display_name }}
                     </option>
                 @endforeach
             </select>
