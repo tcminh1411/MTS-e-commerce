@@ -60,7 +60,7 @@ class AttributeController extends Controller
             return $attribute;
         });
 
-        return redirect()->route('admin.attributes.edit', $attribute)
+        return redirect()->route('admin.attributes.index')
             ->with('success', 'Đã thêm thuộc tính.');
     }
 

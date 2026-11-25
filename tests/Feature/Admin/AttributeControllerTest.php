@@ -38,7 +38,7 @@ class AttributeControllerTest extends TestCase
                     ['value' => 'Xanh', 'color_code' => '#0000ff'],
                 ],
             ])
-            ->assertRedirect()
+            ->assertRedirect(route('admin.attributes.index'))
             ->assertSessionHasNoErrors();
 
         $attribute = Attribute::where('name', 'Màu sắc')->firstOrFail();
