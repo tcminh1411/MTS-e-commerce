@@ -88,4 +88,27 @@ class Order extends Model
     {
         return $this->hasMany(Review::class);
     }
+    protected static function booted(): void
+    {
+        // Tự động cộng/trừ sold_count khi trạng thái đơn hàng thay đổi
+        static::updated(function ($order) {
+            // Nếu đơn hàng chuyển sang "Hoàn thành" (completed)
+            if ($order->wasChanged('status') && $order->status === 'completed') {
+                foreach ($order->items as $item) {
+                    if ($item->product_id) {
+                        \App\Models\Product::where('id', $item->product_id)->increment('sold_count', $item->quantity);
+                    }
+                }
+            }
+
+            // Nếu đơn hàng bị chuyển sang "Đã hủy" (cancelled) thì trừ đi
+            if ($order->wasChanged('status') && $order->status === 'cancelled') {
+                foreach ($order->items as $item) {
+                    if ($item->product_id) {
+                        \App\Models\Product::where('id', $item->product_id)->decrement('sold_count', $item->quantity);
+                    }
+                }
+            }
+        });
+    }
 }
