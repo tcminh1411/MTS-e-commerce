@@ -23,9 +23,10 @@ class InventoryController extends Controller
         $warehouses = Warehouse::orderBy('id')->get();
 
         $inventories = Inventory::query()
-            ->with(['warehouse', 'variant.product'])
+            // Đã thêm 'variant.attributeValues' để lấy phân loại
+            ->with(['warehouse', 'variant.product', 'variant.attributeValues'])
             ->whereHas('variant.product')
-            ->when($warehouseId, fn ($q) => $q->where('warehouse_id', $warehouseId))
+            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
             ->when($keyword !== '', function ($q) use ($keyword) {
                 $q->whereHas('variant', function ($sub) use ($keyword) {
                     $sub->where('sku', 'like', "%{$keyword}%")
@@ -40,7 +41,10 @@ class InventoryController extends Controller
             ->withQueryString();
 
         return view('admin.inventories.index', compact(
-            'inventories', 'warehouses', 'warehouseId', 'keyword'
+            'inventories',
+            'warehouses',
+            'warehouseId',
+            'keyword'
         ));
     }
 
@@ -51,9 +55,9 @@ class InventoryController extends Controller
     {
         $warehouses = Warehouse::where('is_active', true)->orderBy('id')->get();
 
-        // Chỉ load variant + product name, không load hết attribute (tránh N+1 nặng)
+        // Đã thêm 'attributeValues' để lấy phân loại cho dropdown
         $variants = ProductVariant::query()
-            ->with('product:id,name')
+            ->with(['product:id,name', 'attributeValues:id,value'])
             ->whereHas('product')
             ->orderBy('product_id')
             ->orderBy('id')
@@ -62,7 +66,9 @@ class InventoryController extends Controller
         $selectedWarehouseId = $request->input('warehouse_id');
 
         return view('admin.inventories.create', compact(
-            'warehouses', 'variants', 'selectedWarehouseId'
+            'warehouses',
+            'variants',
+            'selectedWarehouseId'
         ));
     }
 
