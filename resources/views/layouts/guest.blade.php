@@ -6,6 +6,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content="{{ csrf_token() }}" />
+    <link rel="icon" type="image/png"
+        href="{{ asset('storage/Favicon.png') }}?v={{ filemtime(storage_path('app/public/Favicon.png')) }}" />
 
     @php
     $routeName = request()->route()?->getName();
@@ -32,10 +34,9 @@
 <body class="font-sans antialiased bg-bg text-ink min-h-screen flex flex-col">
     <div class="flex-1 flex flex-col justify-center items-center px-4 py-12">
         {{-- Logo --}}
-        <a href="{{ route('home') }}" class="mb-8 text-center group">
-            <div class="text-5xl font-serif font-bold tracking-tight group-hover:text-sage transition">
-                MTS
-            </div>
+        <a href="{{ route('home') }}" class="group mb-8 text-center">
+            <img src="{{ asset('storage/Logo.png') }}" alt="MTS - Minh Thái Shop"
+                class="mx-auto mb-3 h-24 w-24 rounded-xl object-cover transition group-hover:scale-105" />
             <p class="text-xs text-muted mt-1 tracking-widest uppercase">Thương mại điện tử B2C</p>
         </a>
 

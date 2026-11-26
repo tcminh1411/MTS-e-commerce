@@ -6,6 +6,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content="{{ csrf_token() }}" />
+    <link rel="icon" type="image/png"
+        href="{{ asset('storage/Favicon.png') }}?v={{ filemtime(storage_path('app/public/Favicon.png')) }}" />
     <title>
         @yield ('title', 'Admin')
         - MTS
@@ -29,8 +31,9 @@
                 : '-translate-x-full md:translate-x-0'">
             <div class="h-12 flex items-center flex-shrink-0 px-5 border-b border-gray-800 justify-center">
                 <a href="{{ auth()->user()->hasRole('admin') ? route('admin.dashboard') : route('admin.products.index') }}"
-                    class="text-lg font-bold text-indigo-400">
-                    MTS Admin
+                    class="flex items-center gap-2 text-lg font-bold text-indigo-400">
+                    <img src="{{ asset('storage/Logo.png') }}" alt="" class="h-8 w-8 rounded object-cover" />
+                    <span>MTS Admin</span>
                 </a>
             </div>
 
