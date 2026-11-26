@@ -10,7 +10,7 @@
         <form
             method="POST"
             action="{{ route('checkout.place') }}"
-            data-subtotal="{{ (int) $cart->items->sum(fn($i) => $i->unit_price * $i->quantity) }}"
+            data-subtotal="{{ $subtotal }}"
             class="grid grid-cols-1 lg:grid-cols-3 gap-6"
         >
             @csrf
@@ -212,7 +212,7 @@
                     <h2 class="text-lg font-semibold mb-4">Đơn hàng</h2>
 
                     <div class="space-y-3 mb-4 max-h-64 overflow-y-auto">
-                        @foreach ($cart->items as $item)
+                        @foreach ($checkoutItems as $item)
                             <div class="flex justify-between text-sm">
                                 <div class="flex-1 pr-2">
                                     <div class="font-medium">
@@ -263,7 +263,7 @@
                         <div class="flex justify-between">
                             <span>Tạm tính</span>
                             <span id="subtotal-display">
-                                {{ number_format($cart->items->sum(fn($i) => $i->unit_price * $i->quantity), 0, ',', '.') }} ₫
+                                {{ number_format($subtotal, 0, ',', '.') }} ₫
                             </span>
                         </div>
                         <div class="flex justify-between">
@@ -274,7 +274,7 @@
                         <div class="flex justify-between text-lg font-bold">
                             <span>Tổng cộng</span>
                             <span id="total-display">
-                                {{ number_format($cart->items->sum(fn($i) => $i->unit_price * $i->quantity), 0, ',', '.') }} ₫
+                                {{ number_format($subtotal, 0, ',', '.') }} ₫
                             </span>
                         </div>
                     </div>
@@ -287,10 +287,10 @@
                     </button>
 
                     <a
-                        href="{{ route('cart.index') }}"
+                        href="{{ $isBuyNow ? route('products.show', $checkoutItems->first()->product->slug) : route('cart.index') }}"
                         class="block text-center text-sm text-gray-600 mt-3 hover:underline"
                     >
-                        ← Quay lại giỏ hàng
+                        {{ $isBuyNow ? '← Quay lại sản phẩm' : '← Quay lại giỏ hàng' }}
                     </a>
                 </div>
             </div>

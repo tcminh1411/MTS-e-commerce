@@ -17,7 +17,17 @@ class WishlistController extends Controller
         $items = Wishlist::query()
             ->where('user_id', Auth::id())
             ->with(['product' => function ($q) {
-                $q->active()->with('images');
+                $q->active()
+                    ->with([
+                        'images',
+                        'variants' => fn ($query) => $query
+                            ->where('status', 'active')
+                            ->with('attributeValues'),
+                    ])
+                    ->withCount([
+                        'variants',
+                        'variants as active_variants_count' => fn ($query) => $query->where('status', 'active'),
+                    ]);
             }])
             ->latest()
             ->paginate(12);

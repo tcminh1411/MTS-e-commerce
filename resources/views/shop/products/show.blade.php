@@ -168,6 +168,14 @@
                     >
                         Thêm vào giỏ
                     </button>
+                    <button
+                        type="submit"
+                        formaction="{{ route('checkout.buy-now') }}"
+                        x-bind:disabled="!canAddToCart"
+                        class="flex-1 px-5 py-3 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-300"
+                    >
+                        Mua ngay
+                    </button>
                 </form>
                 @auth
                     @php

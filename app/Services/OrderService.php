@@ -2,11 +2,15 @@
 
 namespace App\Services;
 
+use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
+use App\Models\Product;
 use App\Models\ShippingRate;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -20,7 +24,7 @@ class OrderService
     ) {}
 
     /**
-     * Tạo đơn hàng từ cart hiện tại.
+     * Tạo đơn hàng từ cart hiện tại hoặc một sản phẩm mua ngay trong session.
      *
      * @param array{
      *   recipient_name: string,
@@ -32,21 +36,25 @@ class OrderService
      *   note?: ?string,
      * } $data
      */
-    public function placeOrder(array $data): Order
+    public function placeOrder(array $data, ?array $buyNowItem = null): Order
     {
-        return DB::transaction(function () use ($data) {
-            $cart = $this->cartService->current();
+        return DB::transaction(function () use ($data, $buyNowItem) {
+            if ($buyNowItem === null) {
+                $cart = $this->cartService->current();
 
-            // Lock items để tránh race condition khi 2 request cùng checkout
-            $items = $cart->items()->lockForUpdate()->get();
+                // Lock items để tránh race condition khi 2 request cùng checkout
+                $items = $cart->items()->lockForUpdate()->get();
 
-            if ($items->isEmpty()) {
-                throw new RuntimeException('Giỏ hàng đang trống, không thể đặt hàng.');
+                if ($items->isEmpty()) {
+                    throw new RuntimeException('Giỏ hàng đang trống, không thể đặt hàng.');
+                }
+
+                $cart->setRelation('items', $items);
+                $this->cartService->refreshPrices($cart);
+                $items = $cart->items;
+            } else {
+                [$cart, $items] = $this->makeBuyNowCart($buyNowItem);
             }
-
-            $cart->setRelation('items', $items);
-            $this->cartService->refreshPrices($cart);
-            $items = $cart->items;
 
             // Tính subtotal + tổng weight TRƯỚC để validate rate khả dụng
             $subtotal = (int) $items->sum(fn ($i) => $i->unit_price * $i->quantity);
@@ -153,6 +161,67 @@ class OrderService
 
             return $order;
         });
+    }
+
+    /**
+     * @param  array{product_id?: mixed, variant_id?: mixed, quantity?: mixed}  $buyNowData
+     * @return array{Cart, Collection<int, CartItem>}
+     */
+    private function makeBuyNowCart(array $buyNowData): array
+    {
+        $productId = filter_var($buyNowData['product_id'] ?? null, FILTER_VALIDATE_INT);
+        $quantity = filter_var($buyNowData['quantity'] ?? null, FILTER_VALIDATE_INT);
+
+        if ($productId === false || $quantity === false || $quantity < 1 || $quantity > 99) {
+            throw new RuntimeException('Thông tin mua ngay không hợp lệ. Vui lòng chọn lại sản phẩm.');
+        }
+
+        $product = Product::query()
+            ->active()
+            ->lockForUpdate()
+            ->find($productId);
+
+        if (! $product) {
+            throw new RuntimeException('Sản phẩm không còn khả dụng.');
+        }
+
+        $hasVariants = $product->variants()->exists();
+        $variantId = $buyNowData['variant_id'] ?? null;
+        $variant = null;
+
+        if ($hasVariants) {
+            $variantId = filter_var($variantId, FILTER_VALIDATE_INT);
+
+            if ($variantId === false) {
+                throw new RuntimeException('Vui lòng chọn phân loại sản phẩm.');
+            }
+
+            $variant = $product->variants()
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->find($variantId);
+
+            if (! $variant) {
+                throw new RuntimeException('Phân loại không còn khả dụng.');
+            }
+        } elseif ($variantId !== null) {
+            throw new RuntimeException('Sản phẩm không có phân loại này.');
+        }
+
+        $item = new CartItem([
+            'product_id' => $product->id,
+            'variant_id' => $variant?->id,
+            'quantity' => $quantity,
+            'unit_price' => $variant?->final_price ?? $product->final_price,
+        ]);
+        $item->setRelation('product', $product);
+        $item->setRelation('variant', $variant);
+
+        $items = collect([$item]);
+        $cart = new Cart;
+        $cart->setRelation('items', $items);
+
+        return [$cart, $items];
     }
 
     /** Sinh mã đơn tăng tuần tự theo ngày, khóa sequence trong transaction checkout. */

@@ -111,6 +111,7 @@ Công khai, đặt hàng giới hạn 10 request/phút.
 
 Route::prefix('checkout')->name('checkout.')->group(function () {
     Route::get('/', [CheckoutController::class, 'index'])->name('index');
+    Route::post('/buy-now', [CheckoutController::class, 'buyNow'])->middleware('throttle:10,1')->name('buy-now');
     Route::post('/', [CheckoutController::class, 'place'])->middleware('throttle:10,1')->name('place');
     Route::get('/success/{order}', [CheckoutController::class, 'success'])->name('success');
 });

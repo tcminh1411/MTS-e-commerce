@@ -14,7 +14,19 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $q = Product::with(['images', 'brand', 'category'])->active();
+        $q = Product::with([
+            'images',
+            'brand',
+            'category',
+            'variants' => fn ($query) => $query
+                ->where('status', 'active')
+                ->with('attributeValues'),
+        ])
+            ->withCount([
+                'variants',
+                'variants as active_variants_count' => fn ($query) => $query->where('status', 'active'),
+            ])
+            ->active();
 
         if ($kw = $request->q) {
             $q->where(fn ($x) => $x->where('name', 'like', "%{$kw}%")
@@ -103,14 +115,25 @@ class ProductController extends Controller
             ];
         })->values();
 
-        $selectedVariant = $variantOptions->firstWhere('isDefault', true) ?? $variantOptions->first();
+        $selectedVariant = $variantOptions->count() === 1
+            ? $variantOptions->first()
+            : null;
         $selectedVariantId = $selectedVariant['id'] ?? null;
         $hasVariants = $product->variants()->exists();
         $initialImage = $selectedVariant['image']
             ?? $product->images->firstWhere('is_primary', true)?->url
             ?? $product->images->first()?->url;
 
-        $related = Product::with('images')
+        $related = Product::with([
+            'images',
+            'variants' => fn ($query) => $query
+                ->where('status', 'active')
+                ->with('attributeValues'),
+        ])
+            ->withCount([
+                'variants',
+                'variants as active_variants_count' => fn ($query) => $query->where('status', 'active'),
+            ])
             ->active()
             ->where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)

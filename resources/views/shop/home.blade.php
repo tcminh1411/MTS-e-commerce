@@ -32,7 +32,7 @@
         @foreach ($categories as $c)
         <a href="{{ route('products.index', ['category' => $c->slug]) }}"
             class="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition group">
-            <div class="aspect-[4/3] bg-gray-100 overflow-hidden">
+            <div class="aspect-square bg-gray-100 overflow-hidden">
                 @if ($c->image_url_full)
                 <img src="{{ $c->image_url_full }}" alt="{{ $c->name }}"
                     class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />

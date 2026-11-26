@@ -50,7 +50,7 @@ class ProductControllerTest extends TestCase
 
         $this->get(route('products.show', $product->slug))
             ->assertOk()
-            ->assertViewHas('selectedVariantId', $variant->id)
+            ->assertViewHas('selectedVariantId', null)
             ->assertViewHas('variantOptions', function ($variants) use ($variant): bool {
                 $selectedVariant = $variants->firstWhere('id', $variant->id);
 
@@ -60,7 +60,8 @@ class ProductControllerTest extends TestCase
                     && $selectedVariant['stock'] === 4
                     && $selectedVariant['image'] === 'https://example.com/blue.jpg';
             })
-            ->assertSee('selectVariant(variant.id)', false);
+            ->assertSee('selectVariant(variant.id)', false)
+            ->assertSee('Mua ngay');
     }
 
     public function test_product_detail_builds_public_url_for_local_variant_image(): void
@@ -105,6 +106,49 @@ class ProductControllerTest extends TestCase
             ->assertOk()
             ->assertViewHas('variantOptions', fn ($variants): bool => $variants->isEmpty())
             ->assertViewHas('hasVariants', false)
-            ->assertSee('Thêm vào giỏ');
+            ->assertSee('Thêm vào giỏ')
+            ->assertSee('Mua ngay');
+    }
+
+    public function test_product_listing_renders_a_quick_view_without_preselecting_a_variant(): void
+    {
+        $product = Product::create([
+            'name' => 'Quick view product',
+            'slug' => 'quick-view-product',
+            'product_type' => 'variable',
+            'price' => 100000,
+            'status' => 'active',
+        ]);
+        $product->rating_avg = 4.5;
+        $product->rating_count = 8;
+        $product->sold_count = 42;
+        $product->save();
+        ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'QUICK-VIEW-BLUE',
+            'name' => 'Blue',
+            'price' => 100000,
+            'status' => 'active',
+        ]);
+        ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'QUICK-VIEW-RED',
+            'name' => 'Red',
+            'price' => 110000,
+            'status' => 'active',
+        ]);
+
+        $this->get(route('products.index'))
+            ->assertOk()
+            ->assertSee('Mua ngay')
+            ->assertSee('selectedVariantId: null', false)
+            ->assertSee('Quick view product')
+            ->assertSee('Blue')
+            ->assertSee('Red')
+            ->assertSee('Đánh giá 4.5 trên 5 sao')
+            ->assertSee('(8)')
+            ->assertSee('Đã bán 42')
+            ->assertSee(asset('storage/Logo.png'))
+            ->assertSee(asset('storage/Favicon.png'));
     }
 }

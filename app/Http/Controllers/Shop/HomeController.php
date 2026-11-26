@@ -12,14 +12,33 @@ class HomeController extends Controller
 {
     public function index()
     {
-        $featured = Product::with(['images', 'brand'])
+        $featured = Product::with([
+            'images',
+            'brand',
+            'variants' => fn ($query) => $query
+                ->where('status', 'active')
+                ->with('attributeValues'),
+        ])
+            ->withCount([
+                'variants',
+                'variants as active_variants_count' => fn ($query) => $query->where('status', 'active'),
+            ])
             ->active()
             ->featured()
             ->latest('published_at')
             ->limit(8)
             ->get();
 
-        $newest = Product::with('images')
+        $newest = Product::with([
+            'images',
+            'variants' => fn ($query) => $query
+                ->where('status', 'active')
+                ->with('attributeValues'),
+        ])
+            ->withCount([
+                'variants',
+                'variants as active_variants_count' => fn ($query) => $query->where('status', 'active'),
+            ])
             ->active()
             ->latest('published_at')
             ->limit(8)
