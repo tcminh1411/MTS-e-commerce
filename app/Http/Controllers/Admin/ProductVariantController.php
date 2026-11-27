@@ -29,7 +29,8 @@ class ProductVariantController extends Controller
 
                 $data['product_id'] = $product->id;
                 $data['sku'] = $data['sku'] ?: 'V-'.strtoupper(Str::random(8));
-                $data['is_default'] = $request->boolean('is_default');
+                $data['is_default'] = $request->boolean('is_default')
+                    || ! $product->variants()->where('is_default', true)->exists();
                 $data['sort_order'] = (int) $product->variants()->max('sort_order') + 1;
                 $data['image_url'] = $imageUrl = $this->resolveImage($request);
                 unset($data['attribute_values']);

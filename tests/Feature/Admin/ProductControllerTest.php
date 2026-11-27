@@ -48,6 +48,47 @@ class ProductControllerTest extends TestCase
         $this->assertTrue($variant->is_default);
     }
 
+    public function test_updating_simple_product_preserves_its_attribute_less_default_variant_and_stock(): void
+    {
+        $admin = $this->admin();
+        $product = $this->makeProduct();
+        $product->update(['product_type' => 'simple']);
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => $product->sku,
+            'name' => 'Mặc định',
+            'price' => 100000,
+            'is_default' => true,
+            'stock' => 7,
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.products.update', $product), [
+                'name' => $product->name,
+                'sku' => $product->sku,
+                'price' => 110000,
+                'status' => 'active',
+                'variants' => [
+                    [
+                        'id' => $variant->id,
+                        'name' => 'Mặc định',
+                        'sku' => $variant->sku,
+                        'price' => 110000,
+                        'status' => 'active',
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.products.index'))
+            ->assertSessionHasNoErrors();
+
+        $variant->refresh();
+        $this->assertModelExists($variant);
+        $this->assertSame(7, $variant->stock);
+        $this->assertTrue($variant->is_default);
+        $this->assertSame('simple', $product->fresh()->product_type);
+    }
+
     public function test_admin_can_assign_attributes_to_a_product(): void
     {
         $admin = $this->admin();
@@ -75,6 +116,7 @@ class ProductControllerTest extends TestCase
             'attribute_id' => $attribute->id,
             'is_variation' => true,
         ]);
+        $this->assertSame('variable', $product->product_type);
     }
 
     public function test_edit_product_form_displays_assigned_attribute_values_for_variant_forms(): void
@@ -237,6 +279,53 @@ class ProductControllerTest extends TestCase
         $this->assertSame(90000.0, (float) $variant->price);
     }
 
+    public function test_backfill_command_repairs_variable_product_without_variation_attributes(): void
+    {
+        $product = Product::create([
+            'name' => 'Legacy product without options',
+            'sku' => 'LEGACY-NO-OPTIONS',
+            'slug' => 'legacy-product-without-options',
+            'product_type' => 'variable',
+            'price' => 90000,
+            'status' => 'active',
+        ]);
+
+        $this->artisan('products:ensure-simple-variants')
+            ->assertSuccessful();
+
+        $variant = $product->variants()->where('is_default', true)->firstOrFail();
+        $this->assertSame('simple', $product->fresh()->product_type);
+        $this->assertSame('Mặc định', $variant->name);
+        $this->assertSame(90000.0, (float) $variant->price);
+    }
+
+    public function test_backfill_command_marks_existing_attribute_less_variant_as_default(): void
+    {
+        $product = Product::create([
+            'name' => 'Legacy product with one optionless variant',
+            'sku' => 'LEGACY-OPTIONLESS-VARIANT',
+            'slug' => 'legacy-product-with-optionless-variant',
+            'product_type' => 'variable',
+            'price' => 90000,
+            'status' => 'active',
+        ]);
+        $variant = $product->variants()->create([
+            'sku' => 'LEGACY-OPTIONLESS-SKU',
+            'name' => 'Base',
+            'price' => 90000,
+            'is_default' => false,
+            'status' => 'active',
+        ]);
+
+        $this->artisan('products:ensure-simple-variants')
+            ->assertSuccessful();
+
+        $variant->refresh();
+        $this->assertSame('simple', $product->fresh()->product_type);
+        $this->assertTrue($variant->is_default);
+        $this->assertSame(1, $product->variants()->count());
+    }
+
     public function test_adding_variant_changes_product_type_to_variable(): void
     {
         $admin = $this->admin();
@@ -267,6 +356,27 @@ class ProductControllerTest extends TestCase
             'sku' => 'IMAGE-RED',
             'name' => 'Red',
         ]);
+    }
+
+    public function test_first_variant_created_without_attributes_is_default(): void
+    {
+        $admin = $this->admin();
+        $product = $this->makeProduct();
+        $product->variants()->delete();
+
+        $this->actingAs($admin)
+            ->post(route('admin.products.variants.store', $product), [
+                'name' => 'Mặc định',
+                'sku' => 'ATTRIBUTE-LESS-DEFAULT',
+                'price' => 120000,
+                'status' => 'active',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $variant = $product->variants()->where('sku', 'ATTRIBUTE-LESS-DEFAULT')->firstOrFail();
+        $this->assertTrue($variant->is_default);
+        $this->assertCount(0, $variant->attributeValues);
     }
 
     public function test_admin_can_create_variant_and_auto_generate_its_name_from_selected_attributes(): void

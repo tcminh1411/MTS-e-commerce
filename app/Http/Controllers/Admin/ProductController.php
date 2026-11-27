@@ -25,7 +25,7 @@ class ProductController extends Controller
             ->withCount('images');
 
         if ($kw = request('q')) {
-            $q->where(fn ($x) => $x->where('name', 'like', "%{$kw}%")
+            $q->where(fn($x) => $x->where('name', 'like', "%{$kw}%")
                 ->orWhere('sku', 'like', "%{$kw}%"));
         }
         if ($cat = request('category_id')) {
@@ -44,7 +44,7 @@ class ProductController extends Controller
     public function create(): View
     {
         return view('admin.products.create', [
-            'product' => new Product(['status' => 'draft', 'price' => 0, 'product_type' => 'variable']),
+            'product' => new Product(['status' => 'draft', 'price' => 0, 'product_type' => 'simple']),
             'categories' => Category::orderBy('name')->get(),
             'brands' => Brand::orderBy('name')->get(),
             'attributes' => Attribute::with('values')->orderBy('sort_order')->orderBy('name')->get(),
@@ -59,14 +59,23 @@ class ProductController extends Controller
     ): RedirectResponse {
         $product = DB::transaction(function () use ($request, $productVariantService) {
             $data = $this->prepareData($request);
+
+            // Form có thể gửi tên thuộc tính dù chưa chọn giá trị tạo biến thể.
+            if (empty($request->input('variants', []))) {
+                $request->merge(['variation_attribute_ids' => []]);
+                $data['product_type'] = 'simple';
+            }
+
             $product = Product::create($data);
             $this->syncAttributes($product, $request);
-
-            // Xử lý ma trận biến thể
             $this->syncVariants($product, $request);
 
             if ($product->product_type === 'simple') {
                 $productVariantService->ensureDefaultForSimpleProduct($product);
+            } elseif (! $product->variants()->exists()) {
+                throw ValidationException::withMessages([
+                    'variants' => 'Chưa tạo được biến thể. Vui lòng kiểm tra giá trị thuộc tính và SKU.',
+                ]);
             }
 
             $this->handleImages($product, $request);
@@ -106,7 +115,7 @@ class ProductController extends Controller
             'brands' => Brand::orderBy('name')->get(),
             'attributes' => Attribute::with('values')->orderBy('sort_order')->orderBy('name')->get(),
             'assignedAttributeSettings' => $product->productAttributes
-                ->mapWithKeys(fn ($productAttribute) => [
+                ->mapWithKeys(fn($productAttribute) => [
                     $productAttribute->attribute_id => ['is_variation' => $productAttribute->is_variation],
                 ])
                 ->all(),
@@ -120,21 +129,52 @@ class ProductController extends Controller
         ProductVariantService $productVariantService
     ): RedirectResponse {
         DB::transaction(function () use ($request, $product, $productVariantService) {
-            $product->update($this->prepareData($request, $product));
+            $product = Product::query()
+                ->lockForUpdate()
+                ->findOrFail($product->id);
+
+            $data = $this->prepareData($request, $product);
+            $hasSubmittedVariants = ! empty($request->input('variants', []));
+
+            if (! $hasSubmittedVariants) {
+                // Tránh xóa ma trận và làm mất liên kết kho khi form gửi rỗng.
+                $hasConfiguredVariants = $product->variants()
+                    ->whereHas('attributeValues')
+                    ->exists();
+
+                if ($hasConfiguredVariants || $product->variants()->count() > 1) {
+                    throw ValidationException::withMessages([
+                        'variants' => 'Sản phẩm đang có biến thể. Vui lòng kiểm tra lại danh sách biến thể trước khi lưu.',
+                    ]);
+                }
+
+                $request->merge(['variation_attribute_ids' => []]);
+                $data['product_type'] = 'simple';
+            }
+
+            $product->update($data);
             $this->syncAttributes($product, $request);
 
-            // Xử lý ma trận biến thể (Cập nhật / Thêm mới / Xóa mềm)
-            $this->syncVariants($product, $request);
+            if ($hasSubmittedVariants) {
+                $this->syncVariants($product, $request);
+            }
 
             if ($product->product_type === 'simple') {
                 $productVariantService->ensureDefaultForSimpleProduct($product);
+            } elseif (! $product->variants()->exists()) {
+                throw ValidationException::withMessages([
+                    'variants' => 'Chưa tạo được biến thể. Vui lòng kiểm tra giá trị thuộc tính và SKU.',
+                ]);
             }
 
             if ($ids = $request->input('remove_images', [])) {
-                $toDelete = ProductImage::where('product_id', $product->id)->whereIn('id', $ids)->get();
-                foreach ($toDelete as $img) {
-                    $this->deleteLocalImage($img);
-                    $img->delete();
+                $images = ProductImage::where('product_id', $product->id)
+                    ->whereIn('id', $ids)
+                    ->get();
+
+                foreach ($images as $image) {
+                    $this->deleteLocalImage($image);
+                    $image->delete();
                 }
             }
 
@@ -171,9 +211,10 @@ class ProductController extends Controller
             $data['variants'], // Xóa mảng variants khỏi data chính
         );
 
-        if (! isset($data['product_type'])) {
-            $data['product_type'] = $product?->product_type ?? 'variable';
-        }
+        $data['product_type'] = ! empty($request->input('variation_attribute_ids'))
+            || ($product?->variants()->count() ?? 0) > 1
+            ? 'variable'
+            : 'simple';
 
         if (empty($data['slug'])) {
             $base = Str::slug($data['name']);
@@ -182,16 +223,16 @@ class ProductController extends Controller
             $ignoreId = $product?->id;
 
             while (Product::withTrashed()->where('slug', $slug)
-                ->when($ignoreId !== null, fn ($q) => $q->where('id', '!=', $ignoreId))
+                ->when($ignoreId !== null, fn($q) => $q->where('id', '!=', $ignoreId))
                 ->exists()
             ) {
-                $slug = $base.'-'.(++$i);
+                $slug = $base . '-' . (++$i);
             }
             $data['slug'] = $slug;
         }
 
         if (empty($data['sku'])) {
-            $data['sku'] = 'P-'.strtoupper(Str::random(8));
+            $data['sku'] = 'P-' . strtoupper(Str::random(8));
         }
 
         $data['is_featured'] = $request->boolean('is_featured');
@@ -221,7 +262,7 @@ class ProductController extends Controller
             ->where('product_variants.product_id', $product->id)
             ->distinct()
             ->pluck('attribute_values.attribute_id')
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->all();
 
         if (array_diff($usedAttributeIds, $variationAttributeIds) !== []) {
@@ -248,10 +289,15 @@ class ProductController extends Controller
     {
         $submittedVariants = $request->input('variants', []);
         $submittedVariantIds = [];
+        $hasVariationAttributes = $product->productAttributes()
+            ->where('is_variation', true)
+            ->exists();
 
         // 1. Duyệt qua các biến thể từ Form gửi lên
         foreach ($submittedVariants as $vData) {
-            if (empty($vData['sku']) || empty($vData['attribute_value_ids'])) {
+            $attributeValueIds = $vData['attribute_value_ids'] ?? [];
+
+            if (empty($vData['sku']) || ($hasVariationAttributes && empty($attributeValueIds))) {
                 continue; // Bỏ qua nếu dữ liệu không hợp lệ
             }
 
@@ -268,7 +314,7 @@ class ProductController extends Controller
                         'deleted_at' => null, // Khôi phục nếu lỡ bị xóa mềm
                     ]);
                     $submittedVariantIds[] = $variant->id;
-                    $variant->attributeValues()->sync($vData['attribute_value_ids']);
+                    $variant->attributeValues()->sync($attributeValueIds);
                 }
             }
             // Nếu không có ID -> Tạo biến thể mới
@@ -282,7 +328,7 @@ class ProductController extends Controller
                     'is_default' => false,
                 ]);
                 $submittedVariantIds[] = $variant->id;
-                $variant->attributeValues()->sync($vData['attribute_value_ids']);
+                $variant->attributeValues()->sync($attributeValueIds);
             }
         }
 
