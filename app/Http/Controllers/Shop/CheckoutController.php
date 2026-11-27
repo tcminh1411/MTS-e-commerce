@@ -56,6 +56,13 @@ class CheckoutController extends Controller
 
             $this->cartService->refreshPrices($cart);
             $cart->loadMissing(['items.product', 'items.variant']);
+
+            if ($this->cartService->hasInsufficientStock($cart)) {
+                return redirect()
+                    ->route('cart.index')
+                    ->with('error', 'Giỏ hàng có sản phẩm hết hàng hoặc vượt tồn kho. Vui lòng cập nhật giỏ hàng.');
+            }
+
             $checkoutItems = $cart->items;
         }
 
@@ -112,14 +119,22 @@ class CheckoutController extends Controller
         }
 
         if ($hasVariants) {
-            $variantExists = $product->variants()
+            $variant = $product->variants()
                 ->where('status', 'active')
                 ->whereKey($variantId)
-                ->exists();
+                ->first();
 
-            if (! $variantExists) {
+            if (! $variant) {
                 throw ValidationException::withMessages([
                     'variant_id' => 'Phân loại không hợp lệ cho sản phẩm này.',
+                ]);
+            }
+
+            if ($variant->stock < $data['quantity']) {
+                throw ValidationException::withMessages([
+                    'variant_id' => $variant->stock === 0
+                        ? 'Phân loại này đã hết hàng.'
+                        : 'Tồn kho không đủ cho số lượng đã chọn.',
                 ]);
             }
         } elseif ($variantId !== null) {
@@ -252,7 +267,7 @@ class CheckoutController extends Controller
             $variant = $product->variants
                 ->first(fn ($productVariant) => $productVariant->id === $variantId && $productVariant->status === 'active');
 
-            if (! $variant) {
+            if (! $variant || $variant->stock < $quantity) {
                 return null;
             }
         } elseif ($variantId !== null) {

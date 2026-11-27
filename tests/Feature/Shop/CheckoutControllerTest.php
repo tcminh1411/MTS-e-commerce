@@ -5,15 +5,12 @@ namespace Tests\Feature\Shop;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Coupon;
-use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\ShippingRate;
 use App\Models\ShippingZone;
 use App\Models\User;
-use App\Models\Warehouse;
-use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -231,6 +228,177 @@ class CheckoutControllerTest extends TestCase
         $this->assertDatabaseCount('cart_items', 0);
     }
 
+    public function test_buy_now_rejects_out_of_stock_variant(): void
+    {
+        $product = Product::create([
+            'name' => 'Out of stock buy now product',
+            'slug' => 'out-of-stock-buy-now-product',
+            'price' => 2000,
+            'status' => 'active',
+        ]);
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'OUT-OF-STOCK-BUY-NOW',
+            'name' => 'Blue',
+            'price' => 3000,
+            'stock' => 0,
+            'status' => 'active',
+        ]);
+
+        $this->post(route('checkout.buy-now'), [
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+        ])
+            ->assertSessionHasErrors([
+                'variant_id' => 'Phân loại này đã hết hàng.',
+            ])
+            ->assertSessionMissing('checkout.buy_now');
+    }
+
+    public function test_buy_now_rejects_quantity_above_variant_stock(): void
+    {
+        $product = Product::create([
+            'name' => 'Low stock buy now product',
+            'slug' => 'low-stock-buy-now-product',
+            'price' => 2000,
+            'status' => 'active',
+        ]);
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'LOW-STOCK-BUY-NOW',
+            'name' => 'Blue',
+            'price' => 3000,
+            'stock' => 1,
+            'status' => 'active',
+        ]);
+
+        $this->post(route('checkout.buy-now'), [
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 2,
+        ])
+            ->assertSessionHasErrors([
+                'variant_id' => 'Tồn kho không đủ cho số lượng đã chọn.',
+            ])
+            ->assertSessionMissing('checkout.buy_now');
+    }
+
+    public function test_buy_now_checkout_redirects_if_variant_sells_out_before_checkout_loads(): void
+    {
+        $product = Product::create([
+            'name' => 'Buy now stock change product',
+            'slug' => 'buy-now-stock-change-product',
+            'price' => 2000,
+            'status' => 'active',
+        ]);
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'BUY-NOW-STOCK-CHANGE',
+            'name' => 'Blue',
+            'price' => 3000,
+            'stock' => 1,
+            'status' => 'active',
+        ]);
+
+        $this->post(route('checkout.buy-now'), [
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+        ])->assertRedirect(route('checkout.index'));
+
+        $variant->update(['stock' => 0]);
+
+        $this->get(route('checkout.index'))
+            ->assertRedirect(route('products.index'))
+            ->assertSessionHas('error', 'Sản phẩm hoặc phân loại không còn khả dụng.')
+            ->assertSessionMissing('checkout.buy_now');
+    }
+
+    public function test_buy_now_order_is_rejected_if_variant_sells_out_after_checkout_loads(): void
+    {
+        $product = Product::create([
+            'name' => 'Buy now final stock product',
+            'slug' => 'buy-now-final-stock-product',
+            'price' => 2000,
+            'status' => 'active',
+        ]);
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'BUY-NOW-FINAL-STOCK',
+            'name' => 'Blue',
+            'price' => 3000,
+            'stock' => 1,
+            'status' => 'active',
+        ]);
+        $zone = ShippingZone::create([
+            'name' => 'Buy now stock zone',
+            'code' => 'BUY-NOW-STOCK',
+            'is_active' => true,
+        ]);
+        $rate = ShippingRate::create([
+            'zone_id' => $zone->id,
+            'name' => 'Standard',
+            'fee' => 0,
+            'is_active' => true,
+        ]);
+
+        $this->post(route('checkout.buy-now'), [
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+        ])->assertRedirect(route('checkout.index'));
+
+        $variant->update(['stock' => 0]);
+
+        $this->post(route('checkout.place'), [
+            'recipient_name' => 'Test customer',
+            'recipient_phone' => '0900000000',
+            'shipping_address' => 'Test address',
+            'shipping_rate_id' => $rate->id,
+            'payment_method' => 'cod',
+        ])
+            ->assertRedirect()
+            ->assertSessionHas('error', 'Phân loại này đã hết hàng.');
+
+        $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_checkout_redirects_to_cart_when_variant_stock_is_insufficient(): void
+    {
+        $user = User::factory()->create();
+        $product = Product::create([
+            'name' => 'Insufficient cart stock product',
+            'slug' => 'insufficient-cart-stock-product',
+            'price' => 2000,
+            'status' => 'active',
+        ]);
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'INSUFFICIENT-CART-STOCK',
+            'name' => 'Blue',
+            'price' => 3000,
+            'stock' => 1,
+            'status' => 'active',
+        ]);
+        $cart = Cart::create([
+            'user_id' => $user->id,
+            'currency' => 'VND',
+        ]);
+        CartItem::create([
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 2,
+            'unit_price' => 3000,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('checkout.index'))
+            ->assertRedirect(route('cart.index'))
+            ->assertSessionHas('error', 'Giỏ hàng có sản phẩm hết hàng hoặc vượt tồn kho. Vui lòng cập nhật giỏ hàng.');
+    }
+
     public function test_buy_now_rejects_variant_belonging_to_another_product(): void
     {
         $product = Product::create([
@@ -275,14 +443,9 @@ class CheckoutControllerTest extends TestCase
         $this->assertDatabaseCount('cart_items', 0);
     }
 
-    public function test_checkout_accepts_quantity_above_stock_and_deducts_only_when_shipping(): void
+    public function test_checkout_rejects_cart_quantity_above_variant_stock(): void
     {
         $user = User::factory()->create();
-        $warehouse = Warehouse::create([
-            'name' => 'Main warehouse',
-            'code' => 'MAIN',
-            'is_active' => true,
-        ]);
         $product = Product::create([
             'name' => 'Test product',
             'slug' => 'test-product-'.Str::lower(Str::random(8)),
@@ -296,11 +459,6 @@ class CheckoutControllerTest extends TestCase
             'stock' => 3,
             'status' => 'active',
         ]);
-        $inventory = Inventory::create([
-            'warehouse_id' => $warehouse->id,
-            'product_variant_id' => $variant->id,
-            'quantity' => 3,
-        ]);
         $cart = Cart::create([
             'user_id' => $user->id,
             'currency' => 'VND',
@@ -312,7 +470,6 @@ class CheckoutControllerTest extends TestCase
             'quantity' => 4,
             'unit_price' => 1000,
         ]);
-        $variant->update(['price' => 1400]);
         $zone = ShippingZone::create([
             'name' => 'Test zone',
             'code' => 'TEST',
@@ -334,42 +491,13 @@ class CheckoutControllerTest extends TestCase
                 'payment_method' => 'cod',
             ])
             ->assertRedirect()
-            ->assertSessionHasNoErrors();
+            ->assertSessionHas('error', 'Tồn kho không đủ cho số lượng đã chọn.');
 
-        $order = Order::query()->latest('id')->firstOrFail();
-
-        $this->assertSame('pending', $order->status);
-        $this->assertSame(5600, $order->subtotal);
-        $this->assertDatabaseHas('order_items', [
-            'order_id' => $order->id,
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertDatabaseHas('cart_items', [
+            'cart_id' => $cart->id,
             'variant_id' => $variant->id,
             'quantity' => 4,
-            'unit_price' => 1400,
-            'line_total' => 5600,
-        ]);
-        $this->assertSame(3, $inventory->fresh()->quantity);
-        $this->assertSame(3, $variant->fresh()->stock);
-        $this->assertDatabaseMissing('stock_movements', [
-            'reference_type' => 'order',
-            'reference_id' => $order->id,
-        ]);
-
-        $this->seed(RolePermissionSeeder::class);
-        $admin = User::factory()->create();
-        $admin->assignRole('admin');
-
-        $this->actingAs($admin)
-            ->patch(route('admin.orders.updateStatus', $order), [
-                'to_status' => 'shipping',
-                'warehouse_id' => $warehouse->id,
-            ])
-            ->assertSessionHasErrors('warehouse_id');
-
-        $this->assertSame('pending', $order->fresh()->status);
-        $this->assertSame(3, $inventory->fresh()->quantity);
-        $this->assertDatabaseMissing('stock_movements', [
-            'reference_type' => 'order',
-            'reference_id' => $order->id,
         ]);
     }
 
@@ -442,7 +570,7 @@ class CheckoutControllerTest extends TestCase
             'name' => 'Default',
             'is_default' => true,
             'price' => 1000,
-            'stock' => 0,
+            'stock' => 2,
             'status' => 'active',
         ]);
         $cart = Cart::create([

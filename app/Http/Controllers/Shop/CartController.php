@@ -19,8 +19,9 @@ class CartController extends Controller
         $cart = $this->cart->current();
         $this->cart->refreshPrices($cart);
         $cart->load('items.product.images', 'items.variant');
+        $hasInsufficientStock = $this->cart->hasInsufficientStock($cart);
 
-        return view('shop.cart.index', compact('cart'));
+        return view('shop.cart.index', compact('cart', 'hasInsufficientStock'));
     }
 
     public function store(Request $request)
@@ -63,6 +64,25 @@ class CartController extends Controller
     public function update(Request $request, CartItem $item)
     {
         $data = $request->validate(['quantity' => ['required', 'integer', 'min:0', 'max:99']]);
+
+        if ($data['quantity'] > 0 && $item->variant_id !== null) {
+            $variant = $item->variant()->first();
+
+            if (! $variant) {
+                throw ValidationException::withMessages([
+                    'quantity' => 'Phân loại không còn khả dụng. Vui lòng xóa sản phẩm khỏi giỏ.',
+                ]);
+            }
+
+            if ($data['quantity'] > $variant->stock) {
+                throw ValidationException::withMessages([
+                    'quantity' => $variant->stock === 0
+                        ? 'Phân loại này đã hết hàng. Vui lòng xóa sản phẩm khỏi giỏ.'
+                        : 'Số lượng vượt quá tồn kho hiện tại.',
+                ]);
+            }
+        }
+
         $this->cart->updateQty($item, $data['quantity']);
 
         return back()->with('success', 'Đã cập nhật giỏ hàng.');

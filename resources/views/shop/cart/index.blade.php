@@ -62,6 +62,19 @@
                                                     Phân loại đã xóa
                                                 </div>
                                             @endif
+                                            @if ($item->variant_id && ! $item->variant)
+                                                <p class="mt-1 text-xs text-red-600">
+                                                    Phân loại không còn khả dụng. Vui lòng xóa sản phẩm khỏi giỏ.
+                                                </p>
+                                            @elseif ($item->variant && $item->variant->stock < $item->quantity)
+                                                <p class="mt-1 text-xs text-red-600" aria-live="polite">
+                                                    @if ($item->variant->stock < 1)
+                                                        Hết hàng. Vui lòng xóa sản phẩm khỏi giỏ.
+                                                    @else
+                                                        Chỉ còn {{ $item->variant->stock }} sản phẩm. Vui lòng giảm số lượng.
+                                                    @endif
+                                                </p>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>
@@ -81,12 +94,17 @@
                                             name="quantity"
                                             value="{{ $item->quantity }}"
                                             min="0"
-                                            max="99"
+                                            max="{{ $item->variant ? min(99, $item->variant->stock) : 99 }}"
                                             class="w-14 border rounded text-center px-2 py-1"
                                         />
                                         <button class="text-xs text-indigo-600">
                                             ↻
                                         </button>
+                                        @error ('quantity')
+                                            <span class="w-full text-center text-red-600 text-xs" role="alert">
+                                                {{ $message }}
+                                            </span>
+                                        @enderror
                                     </form>
                                 </td>
                                 <td class="px-4 py-3 text-right font-semibold">
@@ -141,7 +159,17 @@
                         >{{ number_format($cart->subtotal) }}đ</span
                     >
                 </div>
-                @if (Route::has('checkout.index'))
+                @if ($hasInsufficientStock)
+                    <p class="mt-4 text-sm text-red-600">
+                        Vui lòng cập nhật số lượng hoặc xóa mặt hàng hết hàng trước khi thanh toán.
+                    </p>
+                    <button
+                        disabled
+                        class="block w-full text-center mt-4 px-4 py-3 rounded-lg bg-gray-300 text-gray-500 font-medium cursor-not-allowed"
+                    >
+                        Chưa thể thanh toán
+                    </button>
+                @elseif (Route::has('checkout.index'))
                     <a
                         href="{{ route('checkout.index') }}"
                         class="block text-center mt-4 px-4 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700"

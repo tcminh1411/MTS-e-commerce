@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\ShippingRate;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -52,6 +53,30 @@ class OrderService
                 $cart->setRelation('items', $items);
                 $this->cartService->refreshPrices($cart);
                 $items = $cart->items;
+
+                $variants = ProductVariant::query()
+                    ->whereIn('id', $items->pluck('variant_id')->filter()->unique())
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id');
+
+                foreach ($items as $item) {
+                    if ($item->variant_id === null) {
+                        continue;
+                    }
+
+                    $variant = $variants->get($item->variant_id);
+
+                    if (! $variant || $variant->stock < $item->quantity) {
+                        throw new RuntimeException(! $variant
+                            ? 'Phân loại không còn khả dụng.'
+                            : ($variant->stock === 0
+                                ? 'Phân loại này đã hết hàng.'
+                                : 'Tồn kho không đủ cho số lượng đã chọn.'));
+                    }
+
+                    $item->setRelation('variant', $variant);
+                }
             } else {
                 [$cart, $items] = $this->makeBuyNowCart($buyNowItem);
             }
@@ -203,6 +228,12 @@ class OrderService
 
             if (! $variant) {
                 throw new RuntimeException('Phân loại không còn khả dụng.');
+            }
+
+            if ($variant->stock < $quantity) {
+                throw new RuntimeException($variant->stock === 0
+                    ? 'Phân loại này đã hết hàng.'
+                    : 'Tồn kho không đủ cho số lượng đã chọn.');
             }
         } elseif ($variantId !== null) {
             throw new RuntimeException('Sản phẩm không có phân loại này.');

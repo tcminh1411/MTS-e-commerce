@@ -87,6 +87,74 @@ class CartControllerTest extends TestCase
         ]);
     }
 
+    public function test_add_to_cart_accepts_an_active_variant_with_zero_stock(): void
+    {
+        $product = $this->makeProduct();
+        $variant = $this->makeVariant($product);
+        $variant->update(['stock' => 0]);
+
+        $this->post(route('cart.store'), [
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+        ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('cart_items', [
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+        ]);
+    }
+
+    public function test_cart_warns_and_disables_checkout_for_an_out_of_stock_variant(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->makeProduct();
+        $variant = $this->makeVariant($product);
+        $variant->update(['stock' => 0]);
+        $cart = Cart::create(['user_id' => $user->id, 'currency' => 'VND']);
+        CartItem::create([
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+            'unit_price' => 100000,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('cart.index'))
+            ->assertOk()
+            ->assertSee('Hết hàng. Vui lòng xóa sản phẩm khỏi giỏ.')
+            ->assertSee('Chưa thể thanh toán')
+            ->assertDontSee('href="'.route('checkout.index').'"', false);
+    }
+
+    public function test_cart_rejects_quantity_updates_above_variant_stock(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->makeProduct();
+        $variant = $this->makeVariant($product);
+        $variant->update(['stock' => 2]);
+        $cart = Cart::create(['user_id' => $user->id, 'currency' => 'VND']);
+        $item = CartItem::create([
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+            'unit_price' => 100000,
+        ]);
+
+        $this->actingAs($user)
+            ->patch(route('cart.update', $item), ['quantity' => 3])
+            ->assertSessionHasErrors([
+                'quantity' => 'Số lượng vượt quá tồn kho hiện tại.',
+            ]);
+
+        $this->assertSame(1, $item->fresh()->quantity);
+    }
+
     public function test_add_requires_a_variant_when_product_has_active_variants(): void
     {
         $product = $this->makeProduct();
