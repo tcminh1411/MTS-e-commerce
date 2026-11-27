@@ -18,18 +18,18 @@ class ProductController extends Controller
             'images',
             'brand',
             'category',
-            'variants' => fn($query) => $query
+            'variants' => fn ($query) => $query
                 ->where('status', 'active')
                 ->with('attributeValues.attribute'),
         ])
             ->withCount([
                 'variants',
-                'variants as active_variants_count' => fn($query) => $query->where('status', 'active'),
+                'variants as active_variants_count' => fn ($query) => $query->where('status', 'active'),
             ])
             ->active();
 
         if ($kw = $request->q) {
-            $q->where(fn($x) => $x->where('name', 'like', "%{$kw}%")
+            $q->where(fn ($x) => $x->where('name', 'like', "%{$kw}%")
                 ->orWhere('short_description', 'like', "%{$kw}%"));
         }
 
@@ -75,11 +75,11 @@ class ProductController extends Controller
             'images',
             'brand',
             'category',
-            'variants' => fn($query) => $query
+            'variants' => fn ($query) => $query
                 ->where('status', 'active')
                 ->with([
                     'attributeValues.attribute',
-                    'images' => fn($images) => $images
+                    'images' => fn ($images) => $images
                         ->orderByDesc('is_primary')
                         ->orderBy('sort_order'),
                 ]),
@@ -93,12 +93,12 @@ class ProductController extends Controller
         $variantOptions = $product->variants->map(function ($variant) use ($product) {
             $image = $variant->images->first()?->url ?? $variant->image_url;
             if ($image && ! Str::startsWith($image, ['http://', 'https://'])) {
-                $image = asset('storage/' . $image);
+                $image = asset('storage/'.$image);
             }
 
             return [
                 'id' => (int) $variant->id,
-                'options' => $variant->attributeValues->map(fn($value) => [
+                'options' => $variant->attributeValues->map(fn ($value) => [
                     'groupId' => (int) $value->attribute_id,
                     'groupName' => $value->attribute->name,
                     'valueId' => (int) $value->id,
@@ -107,10 +107,10 @@ class ProductController extends Controller
                 'name' => $variant->display_name,
                 'price' => (float) $variant->price,
                 'salePrice' => $variant->sale_price !== null ? (float) $variant->sale_price : null,
-                'priceLabel' => number_format($variant->price) . 'đ',
-                'originalPriceLabel' => number_format($variant->price) . 'đ',
+                'priceLabel' => number_format($variant->price).'đ',
+                'originalPriceLabel' => number_format($variant->price).'đ',
                 'salePriceLabel' => $variant->sale_price !== null
-                    ? number_format($variant->sale_price) . 'đ'
+                    ? number_format($variant->sale_price).'đ'
                     : null,
                 'isOnSale' => $variant->is_on_sale,
                 'stock' => (int) $variant->stock,
@@ -125,20 +125,20 @@ class ProductController extends Controller
             ? $variantOptions->first()
             : null;
         $selectedVariantId = $selectedVariant['id'] ?? null;
-        $hasVariants = $product->variants()->exists();
+        $hasVariants = $product->product_type === 'variable' || $product->variants()->exists();
         $initialImage = $selectedVariant['image']
             ?? $product->images->firstWhere('is_primary', true)?->url
             ?? $product->images->first()?->url;
 
         $related = Product::with([
             'images',
-            'variants' => fn($query) => $query
+            'variants' => fn ($query) => $query
                 ->where('status', 'active')
                 ->with('attributeValues.attribute'),
         ])
             ->withCount([
                 'variants',
-                'variants as active_variants_count' => fn($query) => $query->where('status', 'active'),
+                'variants as active_variants_count' => fn ($query) => $query->where('status', 'active'),
             ])
             ->active()
             ->where('category_id', $product->category_id)

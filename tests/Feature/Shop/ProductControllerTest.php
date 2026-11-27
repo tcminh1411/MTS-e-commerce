@@ -227,7 +227,7 @@ class ProductControllerTest extends TestCase
             });
     }
 
-    public function test_variable_product_without_variants_still_renders_for_purchase(): void
+    public function test_variable_product_without_variants_is_not_available_for_purchase(): void
     {
         $product = Product::create([
             'name' => 'Product without variants',
@@ -240,7 +240,10 @@ class ProductControllerTest extends TestCase
         $this->get(route('products.show', $product->slug))
             ->assertOk()
             ->assertViewHas('variantOptions', fn ($variants): bool => $variants->isEmpty())
-            ->assertViewHas('hasVariants', false)
+            ->assertViewHas('hasVariants', true)
+            ->assertSee('Hết hàng')
+            ->assertSee('x-bind:disabled="!canAddToCart"', false)
+            ->assertSee('x-bind:disabled="!canBuyNow"', false)
             ->assertSee('Thêm vào giỏ')
             ->assertSee('Mua ngay');
     }

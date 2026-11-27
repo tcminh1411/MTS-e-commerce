@@ -14,7 +14,8 @@ $buyNowVariants = $product->variants->map(fn ($variant) => [
 ])->values();
 $variantCount = (int) ($product->variants_count ?? $buyNowVariants->count());
 $activeVariantCount = (int) ($product->active_variants_count ?? $buyNowVariants->count());
-$hasUnavailableVariants = $variantCount > 0 && $activeVariantCount === 0;
+$hasUnavailableVariants = ($variantCount > 0 && $activeVariantCount === 0)
+    || ($product->product_type === 'variable' && $variantCount === 0);
 $ratingAverage = min(5, max(0, (float) $product->rating_avg));
 $ratingCount = (int) $product->rating_count;
 $displayRating = round($ratingAverage * 2) / 2;

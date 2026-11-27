@@ -29,7 +29,7 @@
 <section class="mb-10">
     <h2 class="text-xl font-bold mb-4">Danh mục</h2>
     <div class="grid grid-cols-6 gap-3">
-        @foreach ($categories as $c)
+        @foreach ($categories->take(6) as $c)
         <a href="{{ route('products.index', ['category' => $c->slug]) }}"
             class="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition group">
             <div class="aspect-square bg-gray-100 overflow-hidden">
