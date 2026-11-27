@@ -81,7 +81,7 @@ class DashboardController extends Controller
             ->get();
 
         $topProductsLabels = $topProducts->pluck('product_name')->all();
-        $topProductsData = $topProducts->pluck('total_qty')->map(fn ($v) => (int) $v)->all();
+        $topProductsData = $topProducts->pluck('total_qty')->map(fn($v) => (int) $v)->all();
 
         // ===== 5. USER MỚI 30 NGÀY =====
         $userRaw = User::where('created_at', '>=', $startDate)
@@ -100,6 +100,7 @@ class DashboardController extends Controller
 
         // ===== 6. LOW STOCK =====
         $lowStocks = Inventory::whereColumn('quantity', '<=', 'low_stock_threshold')
+            ->whereHas('variant.product')
             ->with(['variant.product', 'warehouse'])
             ->orderBy('quantity')
             ->limit(10)
