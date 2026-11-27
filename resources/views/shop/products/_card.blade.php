@@ -55,8 +55,7 @@ $displayRating = round($ratingAverage * 2) / 2;
                 <span class="text-gray-400">Chưa có đánh giá</span>
                 @endif
                 <span class="text-gray-300">·</span>
-                <span class="truncate text-gray-500">Đã bán
-                    {{ number_format((int) $product->sold_count, 0, ',', '.') }}</span>
+                <span class="truncate text-gray-500">Đã bán {{ number_format((int) $product->sold_count, 0, ',', '.') }}</span>
             </div>
             <div class="mt-2 flex items-baseline justify-between gap-2">
                 @if ($product->is_on_sale)

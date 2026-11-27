@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Shop;
 
+use App\Models\Attribute;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -62,6 +63,102 @@ class ProductControllerTest extends TestCase
             })
             ->assertSee('selectVariant(variant.id)', false)
             ->assertSee('Mua ngay');
+    }
+
+    public function test_product_detail_renders_a_selector_for_each_variant_attribute(): void
+    {
+        $product = Product::create([
+            'name' => 'Three attribute product',
+            'slug' => 'three-attribute-product',
+            'product_type' => 'variable',
+            'price' => 100000,
+            'status' => 'active',
+        ]);
+        $attributes = collect([
+            [
+                'name' => 'RAM',
+                'slug' => 'ram',
+                'value' => '16 GB',
+                'value_slug' => '16-gb',
+                'other_value' => '8 GB',
+                'other_value_slug' => '8-gb',
+            ],
+            [
+                'name' => 'Bộ nhớ',
+                'slug' => 'storage',
+                'value' => '512 GB',
+                'value_slug' => '512-gb',
+                'other_value' => '256 GB',
+                'other_value_slug' => '256-gb',
+            ],
+            [
+                'name' => 'Màu sắc',
+                'slug' => 'color',
+                'value' => 'Đen',
+                'value_slug' => 'black',
+                'other_value' => 'Bạc',
+                'other_value_slug' => 'silver',
+            ],
+        ])->map(function (array $data) use ($product) {
+            $attribute = Attribute::create([
+                'name' => $data['name'],
+                'slug' => $data['slug'],
+                'type' => 'select',
+            ]);
+            $value = $attribute->values()->create([
+                'value' => $data['value'],
+                'slug' => $data['value_slug'],
+            ]);
+            $otherValue = $attribute->values()->create([
+                'value' => $data['other_value'],
+                'slug' => $data['other_value_slug'],
+            ]);
+            $product->productAttributes()->create([
+                'attribute_id' => $attribute->id,
+                'is_variation' => true,
+            ]);
+
+            return [$attribute, $value, $otherValue];
+        });
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'RAM-STORAGE-COLOR',
+            'name' => 'Black',
+            'price' => 120000,
+            'stock' => 5,
+            'status' => 'active',
+        ]);
+        $variant->attributeValues()->sync($attributes->pluck(1)->pluck('id')->all());
+        $otherVariant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'OTHER-RAM-STORAGE-COLOR',
+            'name' => 'Silver',
+            'price' => 110000,
+            'stock' => 2,
+            'status' => 'active',
+        ]);
+        $otherVariant->attributeValues()->sync($attributes->pluck(2)->pluck('id')->all());
+
+        $this->get(route('products.show', $product->slug))
+            ->assertOk()
+            ->assertViewHas('selectedVariantId', null)
+            ->assertViewHas('variantOptions', function ($variants) use ($attributes): bool {
+                $options = $variants->first()['options'];
+
+                return $variants->count() === 2
+                    && $variants->every(fn ($variant): bool => count($variant['options']) === 3)
+                    && count($options) === 3
+                    && collect($options)->pluck('groupName')->sort()->values()->all()
+                        === $attributes->pluck(0)->pluck('name')->sort()->values()->all()
+                    && collect($options)->pluck('label')->sort()->values()->all()
+                        === $attributes->pluck(1)->pluck('value')->sort()->values()->all();
+            })
+            ->assertSee('x-for="group in groups"', false)
+            ->assertSee('pick(group.id, value.id)', false)
+            ->assertSee('name="variant_id"', false)
+            ->assertSee('RAM')
+            ->assertSee('Bộ nhớ')
+            ->assertSee('Màu sắc');
     }
 
     public function test_product_detail_builds_public_url_for_local_variant_image(): void
