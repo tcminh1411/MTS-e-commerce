@@ -17,7 +17,7 @@ class HomeController extends Controller
             'brand',
             'variants' => fn ($query) => $query
                 ->where('status', 'active')
-                ->with('attributeValues'),
+                ->with('attributeValues.attribute'),
         ])
             ->withCount([
                 'variants',
@@ -33,7 +33,7 @@ class HomeController extends Controller
             'images',
             'variants' => fn ($query) => $query
                 ->where('status', 'active')
-                ->with('attributeValues'),
+                ->with('attributeValues.attribute'),
         ])
             ->withCount([
                 'variants',

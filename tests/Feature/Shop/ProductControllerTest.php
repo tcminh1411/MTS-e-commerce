@@ -161,6 +161,44 @@ class ProductControllerTest extends TestCase
             ->assertSee('Màu sắc');
     }
 
+    public function test_product_detail_allows_selecting_an_active_variant_with_zero_stock(): void
+    {
+        $product = Product::create([
+            'name' => 'Out of stock product',
+            'slug' => 'out-of-stock-product',
+            'product_type' => 'variable',
+            'price' => 100000,
+            'status' => 'active',
+        ]);
+        ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'OUT-OF-STOCK',
+            'name' => 'Blue',
+            'price' => 100000,
+            'stock' => 0,
+            'status' => 'active',
+        ]);
+        ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'IN-STOCK',
+            'name' => 'Red',
+            'price' => 100000,
+            'stock' => 2,
+            'status' => 'active',
+        ]);
+
+        $this->get(route('products.show', $product->slug))
+            ->assertOk()
+            ->assertSee('selectVariant(variant.id)', false)
+            ->assertDontSee('x-bind:disabled="variant.stock <= 0"', false)
+            ->assertSee('this.variants.find(item => item.id === id)', false)
+            ->assertSee("selectedVariant.stock > 0 ? 'Còn hàng: ' + selectedVariant.stock : 'Hết hàng'", false)
+            ->assertSee('get canBuyNow()', false)
+            ->assertSee('x-bind:disabled="!canBuyNow"', false)
+            ->assertSee('x-bind:disabled="!canAddToCart"', false)
+            ->assertSee('Thêm vào giỏ');
+    }
+
     public function test_product_detail_builds_public_url_for_local_variant_image(): void
     {
         $product = Product::create([
@@ -247,5 +285,117 @@ class ProductControllerTest extends TestCase
             ->assertSee('Đã bán 42')
             ->assertSee(asset('storage/Logo.png'))
             ->assertSee(asset('storage/Favicon.png'));
+    }
+
+    public function test_product_listing_goes_directly_to_checkout_for_a_single_in_stock_variant(): void
+    {
+        $product = Product::create([
+            'name' => 'Single variant product',
+            'slug' => 'single-variant-product',
+            'product_type' => 'variable',
+            'price' => 100000,
+            'status' => 'active',
+        ]);
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'SINGLE-VARIANT',
+            'name' => 'Blue',
+            'price' => 100000,
+            'stock' => 5,
+            'status' => 'active',
+        ]);
+
+        $this->get(route('products.index'))
+            ->assertOk()
+            ->assertSee('Blue')
+            ->assertSee('name="variant_id" value="'.$variant->id.'"', false)
+            ->assertDontSee("open-modal', 'buy-now-modal-{$product->id}'", false);
+    }
+
+    public function test_product_listing_disables_buy_now_for_a_single_out_of_stock_variant(): void
+    {
+        $product = Product::create([
+            'name' => 'Out of stock listing product',
+            'slug' => 'out-of-stock-listing-product',
+            'product_type' => 'variable',
+            'price' => 100000,
+            'status' => 'active',
+        ]);
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'OUT-OF-STOCK-LISTING',
+            'name' => 'Blue',
+            'price' => 100000,
+            'stock' => 0,
+            'status' => 'active',
+        ]);
+
+        $this->get(route('products.index'))
+            ->assertOk()
+            ->assertSee($product->name)
+            ->assertSee('Hết hàng')
+            ->assertSee('type="button" disabled', false)
+            ->assertDontSee('name="variant_id" value="'.$variant->id.'"', false);
+    }
+
+    public function test_product_quick_view_groups_attributes_and_keeps_out_of_stock_values_selectable(): void
+    {
+        $product = Product::create([
+            'name' => 'Quick view attribute product',
+            'slug' => 'quick-view-attribute-product',
+            'product_type' => 'variable',
+            'price' => 100000,
+            'status' => 'active',
+        ]);
+        $ram = Attribute::create([
+            'name' => 'RAM',
+            'slug' => 'quick-view-ram',
+            'type' => 'select',
+        ]);
+        $ram8 = $ram->values()->create(['value' => '8 GB', 'slug' => 'quick-view-8-gb']);
+        $ram16 = $ram->values()->create(['value' => '16 GB', 'slug' => 'quick-view-16-gb']);
+        $color = Attribute::create([
+            'name' => 'Màu sắc',
+            'slug' => 'quick-view-color',
+            'type' => 'select',
+        ]);
+        $blue = $color->values()->create(['value' => 'Xanh', 'slug' => 'quick-view-blue']);
+        $product->productAttributes()->createMany([
+            ['attribute_id' => $ram->id, 'is_variation' => true],
+            ['attribute_id' => $color->id, 'is_variation' => true],
+        ]);
+
+        $outOfStockVariant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'QUICK-VIEW-OOS',
+            'name' => '8 GB xanh',
+            'price' => 100000,
+            'stock' => 0,
+            'status' => 'active',
+        ]);
+        $outOfStockVariant->attributeValues()->sync([$ram8->id, $blue->id]);
+        $inStockVariant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'QUICK-VIEW-IN-STOCK',
+            'name' => '16 GB xanh',
+            'price' => 110000,
+            'stock' => 2,
+            'status' => 'active',
+        ]);
+        $inStockVariant->attributeValues()->sync([$ram16->id, $blue->id]);
+
+        $this->get(route('products.index'))
+            ->assertOk()
+            ->assertSee('x-for="group in groups"', false)
+            ->assertSee('pick(group.id, value.id)', false)
+            ->assertSee('variant.stock > 0 ? \'Còn hàng: \' + variant.stock : \'Hết hàng\'', false)
+            ->assertSee('selectedVariant.stock < 1', false)
+            ->assertSee('selectedVariantId === null || selectedVariant.stock < 1', false)
+            ->assertSee('Phân loại này đã hết hàng, vui lòng chọn phân loại còn hàng.')
+            ->assertSee('groupName', false)
+            ->assertSee('8 GB')
+            ->assertSee('Xanh')
+            ->assertSee('16 GB')
+            ->assertSee(route('checkout.buy-now'));
     }
 }

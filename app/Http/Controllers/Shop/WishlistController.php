@@ -22,7 +22,7 @@ class WishlistController extends Controller
                         'images',
                         'variants' => fn ($query) => $query
                             ->where('status', 'active')
-                            ->with('attributeValues'),
+                            ->with('attributeValues.attribute'),
                     ])
                     ->withCount([
                         'variants',

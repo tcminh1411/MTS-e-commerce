@@ -78,7 +78,12 @@ get selectedVariant() {
 },
 
 get canAddToCart() {
-    return @js(! $hasVariants) || (this.selectedVariant?.stock ?? 0) > 0;
+    return @js(! $hasVariants) || this.selectedVariant !== null;
+},
+
+get canBuyNow() {
+    return @js(! $hasVariants)
+        || (this.selectedVariant !== null && this.selectedVariant.stock >= this.quantity);
 },
 
 matches(variant, choices) {
@@ -92,7 +97,7 @@ matches(variant, choices) {
 canPick(groupId, valueId) {
     const choices = { ...this.chosen, [groupId]: valueId };
     return this.variants.some(variant =>
-        variant.stock > 0 && this.matches(variant, choices)
+        this.matches(variant, choices)
     );
 },
 
@@ -110,19 +115,19 @@ pick(groupId, valueId) {
 
     const complete = Object.keys(choices).length === this.groups.length;
     const variant = complete
-        ? this.variants.find(item => item.stock > 0 && this.matches(item, choices))
+        ? this.variants.find(item => this.matches(item, choices))
         : null;
 
     this.selectVariant(variant?.id ?? null);
 },
 
 selectVariant(id) {
-    const variant = this.variants.find(item => item.id === id && item.stock > 0);
+    const variant = this.variants.find(item => item.id === id);
     this.selectedVariantId = variant?.id ?? null;
     this.mainImage = variant?.image || this.defaultImage;
 
     if (variant) {
-        this.quantity = Math.max(1, Math.min(Number(this.quantity) || 1, variant.stock, 99));
+        this.quantity = Math.max(1, Math.min(Number(this.quantity) || 1, 99));
     }
 },
 
@@ -219,7 +224,6 @@ selectVariant(id) {
                             <div class="flex flex-wrap gap-2">
                                 <template x-for="variant in variants" :key="variant.id">
                                     <button type="button" x-on:click="selectVariant(variant.id)"
-                                        x-bind:disabled="variant.stock <= 0"
                                         x-bind:aria-pressed="selectedVariantId === variant.id"
                                         x-bind:class="selectedVariantId === variant.id
                                         ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
@@ -235,13 +239,13 @@ selectVariant(id) {
                 @endif
 
                 <input type="number" name="quantity" value="1" min="1" max="99" x-model.number="quantity"
-                    x-bind:max="selectedVariant ? Math.min(99, selectedVariant.stock) : 99"
+                    x-bind:max="99"
                     x-bind:disabled="!canAddToCart" class="w-20 border rounded-lg px-3 py-3 text-sm text-center" />
                 <button type="submit" x-bind:disabled="!canAddToCart"
                     class="flex-1 px-5 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700">
                     Thêm vào giỏ
                 </button>
-                <button type="submit" formaction="{{ route('checkout.buy-now') }}" x-bind:disabled="!canAddToCart"
+                <button type="submit" formaction="{{ route('checkout.buy-now') }}" x-bind:disabled="!canBuyNow"
                     class="flex-1 px-5 py-3 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-300">
                     Mua ngay
                 </button>
@@ -278,7 +282,7 @@ selectVariant(id) {
             </div>
             @if ($hasVariants)
             <div aria-live="polite" x-text="selectedVariant
-            ? 'Còn hàng: ' + selectedVariant.stock
+            ? (selectedVariant.stock > 0 ? 'Còn hàng: ' + selectedVariant.stock : 'Hết hàng')
             : variants.some(variant => variant.stock > 0)
                 ? 'Vui lòng chọn phân loại sản phẩm'
                 : 'Hết hàng'"></div>

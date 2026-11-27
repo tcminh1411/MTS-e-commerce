@@ -5,6 +5,12 @@ $buyNowVariants = $product->variants->map(fn ($variant) => [
 'name' => $variant->display_name,
 'price' => number_format($variant->final_price).'đ',
 'stock' => (int) $variant->stock,
+'options' => $variant->attributeValues->map(fn ($value) => [
+'groupId' => (int) $value->attribute_id,
+'groupName' => $value->attribute->name,
+'valueId' => (int) $value->id,
+'label' => $value->value,
+])->values()->all(),
 ])->values();
 $variantCount = (int) ($product->variants_count ?? $buyNowVariants->count());
 $activeVariantCount = (int) ($product->active_variants_count ?? $buyNowVariants->count());
@@ -17,8 +23,84 @@ $displayRating = round($ratingAverage * 2) / 2;
 <article x-data="{
         variants: @js($buyNowVariants),
         selectedVariantId: null,
+        chosen: {},
+        groups: [],
+        useGroups: false,
+        init() {
+            const groups = new Map();
+
+            for (const variant of this.variants) {
+                for (const option of variant.options) {
+                    if (!groups.has(option.groupId)) {
+                        groups.set(option.groupId, {
+                            id: option.groupId,
+                            name: option.groupName,
+                            values: new Map(),
+                        });
+                    }
+
+                    groups.get(option.groupId).values.set(option.valueId, {
+                        id: option.valueId,
+                        label: option.label,
+                    });
+                }
+            }
+
+            this.groups = Array.from(groups.values(), group => ({
+                id: group.id,
+                name: group.name,
+                values: Array.from(group.values.values()),
+            }));
+
+            const combinations = this.variants.map(variant =>
+                variant.options
+                    .map(option => `${option.groupId}:${option.valueId}`)
+                    .sort()
+                    .join('|')
+            );
+
+            this.useGroups = this.groups.length > 0
+                && this.variants.every(variant =>
+                    variant.options.length === this.groups.length
+                    && new Set(variant.options.map(option => option.groupId)).size === this.groups.length
+                )
+                && new Set(combinations).size === this.variants.length;
+        },
+        get selectedVariant() {
+            return this.variants.find(variant => variant.id === this.selectedVariantId) ?? null;
+        },
+        matches(variant, choices) {
+            return Object.entries(choices).every(([groupId, valueId]) =>
+                variant.options.some(option =>
+                    option.groupId === Number(groupId) && option.valueId === valueId
+                )
+            );
+        },
+        canPick(groupId, valueId) {
+            const choices = { ...this.chosen, [groupId]: valueId };
+            return this.variants.some(variant => this.matches(variant, choices));
+        },
+        pick(groupId, valueId) {
+            const choices = { ...this.chosen };
+
+            if (choices[groupId] === valueId) {
+                delete choices[groupId];
+            } else {
+                if (!this.canPick(groupId, valueId)) return;
+                choices[groupId] = valueId;
+            }
+
+            this.chosen = choices;
+
+            const complete = Object.keys(choices).length === this.groups.length;
+            const variant = complete
+                ? this.variants.find(item => this.matches(item, choices))
+                : null;
+
+            this.selectVariant(variant?.id ?? null);
+        },
         selectVariant(id) {
-            this.selectedVariantId = id;
+            this.selectedVariantId = this.variants.find(variant => variant.id === id)?.id ?? null;
         },
     }" class="relative flex flex-col overflow-hidden rounded-xl bg-white shadow-sm transition hover:shadow-md">
     <a href="{{ route('products.show', $product->slug) }}" class="flex flex-1 flex-col">
@@ -79,7 +161,7 @@ $displayRating = round($ratingAverage * 2) / 2;
         </button>
         @elseif ($buyNowVariants->count() > 1)
         <button type="button"
-            x-on:click="selectedVariantId = null; $dispatch('open-modal', 'buy-now-modal-{{ $product->id }}')"
+            x-on:click="selectedVariantId = null; chosen = {}; $dispatch('open-modal', 'buy-now-modal-{{ $product->id }}')"
             class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
             Mua ngay
         </button>
@@ -105,38 +187,76 @@ $displayRating = round($ratingAverage * 2) / 2;
                     <input type="hidden" name="quantity" value="1" />
                     <input type="hidden" name="variant_id" x-bind:value="selectedVariantId" />
 
-                    <fieldset>
-                        <legend class="mb-2 text-sm font-medium">Phân loại sản phẩm</legend>
-                        <div class="grid gap-2 sm:grid-cols-2">
-                            <template x-for="variant in variants" :key="variant.id">
-                                <button type="button" x-on:click="selectVariant(variant.id)"
-                                    x-bind:aria-pressed="selectedVariantId === variant.id" x-bind:class="selectedVariantId === variant.id
-                                            ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                                            : 'border-gray-300 text-gray-700 hover:border-indigo-500'"
-                                    class="flex items-start justify-between gap-3 rounded-lg border p-3 text-left">
-                                    <span>
-                                        <span class="block text-sm font-medium" x-text="variant.name"></span>
-                                        <span class="mt-1 block text-xs text-gray-500" x-text="variant.stock > 0
-                                                ? 'Còn hàng: ' + variant.stock
-                                                : 'Hết hàng'"></span>
-                                    </span>
-                                    <span class="whitespace-nowrap text-sm font-semibold" x-text="variant.price"></span>
-                                </button>
+                    <template x-if="useGroups">
+                        <div class="space-y-4">
+                            <template x-for="group in groups" :key="group.id">
+                                <fieldset>
+                                    <legend class="mb-2 text-sm font-medium text-gray-800"
+                                        x-text="group.name"></legend>
+                                    <div class="flex flex-wrap gap-2">
+                                        <template x-for="value in group.values" :key="value.id">
+                                            <button type="button" x-on:click="pick(group.id, value.id)"
+                                                x-bind:disabled="!canPick(group.id, value.id)"
+                                                x-bind:aria-pressed="chosen[group.id] === value.id"
+                                                x-bind:class="chosen[group.id] === value.id
+                                                ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                                                : 'border-gray-300 bg-white text-gray-700'"
+                                                class="rounded-lg border px-4 py-2 text-sm font-medium
+                                                enabled:hover:border-indigo-500
+                                                disabled:cursor-not-allowed disabled:opacity-40"
+                                                x-text="value.label"></button>
+                                        </template>
+                                    </div>
+                                </fieldset>
                             </template>
                         </div>
-                    </fieldset>
+                    </template>
+
+                    <template x-if="!useGroups">
+                        <fieldset>
+                            <legend class="mb-2 text-sm font-medium">Phân loại sản phẩm</legend>
+                            <div class="grid gap-2 sm:grid-cols-2">
+                                <template x-for="variant in variants" :key="variant.id">
+                                    <button type="button" x-on:click="selectVariant(variant.id)"
+                                        x-bind:aria-pressed="selectedVariantId === variant.id"
+                                        x-bind:class="selectedVariantId === variant.id
+                                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                                        : 'border-gray-300 text-gray-700 hover:border-indigo-500'"
+                                        class="flex items-start justify-between gap-3 rounded-lg border p-3 text-left">
+                                        <span>
+                                            <span class="block text-sm font-medium" x-text="variant.name"></span>
+                                            <span class="mt-1 block text-xs text-gray-500"
+                                                x-text="variant.stock > 0 ? 'Còn hàng: ' + variant.stock : 'Hết hàng'"></span>
+                                        </span>
+                                        <span class="whitespace-nowrap text-sm font-semibold" x-text="variant.price"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </fieldset>
+                    </template>
+
+                    <p x-show="selectedVariantId !== null && selectedVariant?.stock < 1" class="text-sm text-amber-700">
+                        Phân loại này đã hết hàng, vui lòng chọn phân loại còn hàng.
+                    </p>
 
                     <p x-show="selectedVariantId === null" class="text-sm text-amber-700">
                         Vui lòng chọn phân loại trước khi tiếp tục.
                     </p>
 
-                    <button type="submit" x-bind:disabled="selectedVariantId === null"
+                    <button type="submit"
+                        x-bind:disabled="selectedVariantId === null || selectedVariant.stock < 1"
                         class="w-full rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300">
                         Tiếp tục thanh toán
                     </button>
                 </form>
             </div>
         </x-modal>
+        @else
+        @if ($buyNowVariants->isNotEmpty() && $buyNowVariants->first()['stock'] < 1)
+        <button type="button" disabled
+            class="w-full cursor-not-allowed rounded-lg bg-gray-300 px-4 py-2 text-sm font-semibold text-gray-600">
+            Hết hàng
+        </button>
         @else
         <form method="POST" action="{{ route('checkout.buy-now') }}">
             @csrf
@@ -150,6 +270,7 @@ $displayRating = round($ratingAverage * 2) / 2;
                 Mua ngay
             </button>
         </form>
+        @endif
         @endif
     </div>
 </article>

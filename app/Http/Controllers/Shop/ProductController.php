@@ -20,7 +20,7 @@ class ProductController extends Controller
             'category',
             'variants' => fn($query) => $query
                 ->where('status', 'active')
-                ->with('attributeValues'),
+                ->with('attributeValues.attribute'),
         ])
             ->withCount([
                 'variants',
@@ -134,7 +134,7 @@ class ProductController extends Controller
             'images',
             'variants' => fn($query) => $query
                 ->where('status', 'active')
-                ->with('attributeValues'),
+                ->with('attributeValues.attribute'),
         ])
             ->withCount([
                 'variants',
