@@ -36,10 +36,11 @@ class CartService
 
     public function hasInsufficientStock(Cart $cart): bool
     {
-        $cart->loadMissing('items.variant');
+        $cart->loadMissing('items.product', 'items.variant');
 
-        return $cart->items->contains(fn (CartItem $item): bool => $item->variant_id !== null
-            && (! $item->variant || $item->variant->stock < $item->quantity));
+        return $cart->items->contains(fn (CartItem $item): bool => $item->variant_id === null
+            || ! $item->variant
+            || $item->variant->stock < $item->quantity);
     }
 
     public function add(Product $product, ?ProductVariant $variant, int $qty = 1): CartItem

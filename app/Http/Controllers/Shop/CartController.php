@@ -6,13 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\CartItem;
 use App\Models\Product;
 use App\Services\CartService;
+use App\Services\ProductVariantService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 /** Xử lý các yêu cầu liên quan đến giỏ hàng. */
 class CartController extends Controller
 {
-    public function __construct(private CartService $cart) {}
+    public function __construct(
+        private CartService $cart,
+        private ProductVariantService $productVariantService,
+    ) {}
 
     public function index()
     {
@@ -33,25 +37,39 @@ class CartController extends Controller
         ]);
 
         $product = Product::findOrFail($data['product_id']);
-        $activeVariants = $product->variants()->where('status', 'active');
         $variant = null;
 
-        if ($product->variants()->exists()) {
+        if ($product->product_type === 'simple') {
+            $variant = $this->productVariantService->ensureDefaultForSimpleProduct($product);
+
+            if ($variant->status !== 'active'
+                || (isset($data['variant_id']) && (int) $data['variant_id'] !== $variant->id)
+            ) {
+                throw ValidationException::withMessages([
+                    'variant_id' => 'Phân loại mặc định không còn khả dụng.',
+                ]);
+            }
+        } elseif ($product->variants()->exists()) {
             if (empty($data['variant_id'])) {
                 throw ValidationException::withMessages([
                     'variant_id' => 'Vui lòng chọn phân loại sản phẩm.',
                 ]);
             }
-        }
 
-        if (! empty($data['variant_id'])) {
-            $variant = $activeVariants->whereKey($data['variant_id'])->first();
+            $variant = $product->variants()
+                ->where('status', 'active')
+                ->whereKey($data['variant_id'])
+                ->first();
 
             if (! $variant) {
                 throw ValidationException::withMessages([
                     'variant_id' => 'Phân loại không hợp lệ cho sản phẩm này.',
                 ]);
             }
+        } else {
+            throw ValidationException::withMessages([
+                'variant_id' => 'Sản phẩm chưa có biến thể để kiểm tra tồn kho.',
+            ]);
         }
 
         $this->cart->add($product, $variant, $data['quantity']);

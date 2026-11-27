@@ -62,7 +62,7 @@ class OrderService
 
                 foreach ($items as $item) {
                     if ($item->variant_id === null) {
-                        continue;
+                        throw new RuntimeException('Sản phẩm trong giỏ chưa có biến thể để kiểm tra tồn kho. Vui lòng xóa và thêm lại sản phẩm.');
                     }
 
                     $variant = $variants->get($item->variant_id);

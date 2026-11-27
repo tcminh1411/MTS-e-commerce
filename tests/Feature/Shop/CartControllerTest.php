@@ -25,7 +25,11 @@ class CartControllerTest extends TestCase
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertDatabaseCount('cart_items', 1);
-        $this->assertDatabaseHas('cart_items', ['product_id' => $product->id, 'quantity' => 2]);
+        $this->assertDatabaseHas('cart_items', [
+            'product_id' => $product->id,
+            'variant_id' => $product->defaultVariant()->value('id'),
+            'quantity' => 2,
+        ]);
     }
 
     public function test_authenticated_user_adds_to_their_cart(): void
@@ -158,6 +162,7 @@ class CartControllerTest extends TestCase
     public function test_add_requires_a_variant_when_product_has_active_variants(): void
     {
         $product = $this->makeProduct();
+        $product->update(['product_type' => 'variable']);
         $this->makeVariant($product);
 
         $this->post(route('cart.store'), [
@@ -252,7 +257,7 @@ class CartControllerTest extends TestCase
             ->assertSee('Phân loại đã xóa');
     }
 
-    public function test_variable_product_with_all_variants_deleted_can_be_added_without_a_variant(): void
+    public function test_variable_product_without_variants_cannot_be_added_to_cart(): void
     {
         $product = $this->makeProduct();
         $product->update(['product_type' => 'variable']);
@@ -261,14 +266,11 @@ class CartControllerTest extends TestCase
             'product_id' => $product->id,
             'quantity' => 1,
         ])
-            ->assertRedirect()
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasErrors([
+                'variant_id' => 'Sản phẩm chưa có biến thể để kiểm tra tồn kho.',
+            ]);
 
-        $this->assertDatabaseHas('cart_items', [
-            'product_id' => $product->id,
-            'variant_id' => null,
-            'quantity' => 1,
-        ]);
+        $this->assertDatabaseCount('cart_items', 0);
     }
 
     public function test_add_returns_json_when_wants_json(): void

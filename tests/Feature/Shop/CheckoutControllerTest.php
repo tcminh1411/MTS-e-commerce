@@ -151,12 +151,21 @@ class CheckoutControllerTest extends TestCase
         $this->assertSame(1, Coupon::query()->where('code', 'BUY500')->firstOrFail()->fresh()->used_count);
     }
 
-    public function test_buy_now_accepts_simple_product_without_variant(): void
+    public function test_buy_now_accepts_simple_product_with_default_variant(): void
     {
         $product = Product::create([
             'name' => 'Simple product',
             'slug' => 'simple-product',
             'price' => 2500,
+            'status' => 'active',
+        ]);
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'SIMPLE-PRODUCT-DEFAULT',
+            'name' => 'Mặc định',
+            'price' => 2500,
+            'is_default' => true,
+            'stock' => 5,
             'status' => 'active',
         ]);
         $zone = ShippingZone::create([
@@ -173,6 +182,7 @@ class CheckoutControllerTest extends TestCase
 
         $this->post(route('checkout.buy-now'), [
             'product_id' => $product->id,
+            'variant_id' => $variant->id,
             'quantity' => 1,
         ])->assertRedirect(route('checkout.index'));
 
@@ -192,7 +202,7 @@ class CheckoutControllerTest extends TestCase
         $this->assertDatabaseHas('order_items', [
             'order_id' => $order->id,
             'product_id' => $product->id,
-            'variant_id' => null,
+            'variant_id' => $variant->id,
             'quantity' => 1,
             'unit_price' => 2500,
         ]);
@@ -204,6 +214,7 @@ class CheckoutControllerTest extends TestCase
         $product = Product::create([
             'name' => 'Variant product',
             'slug' => 'variant-product',
+            'product_type' => 'variable',
             'price' => 2000,
             'status' => 'active',
         ]);
@@ -404,6 +415,7 @@ class CheckoutControllerTest extends TestCase
         $product = Product::create([
             'name' => 'Product one',
             'slug' => 'product-one',
+            'product_type' => 'variable',
             'price' => 2000,
             'status' => 'active',
         ]);
@@ -501,7 +513,7 @@ class CheckoutControllerTest extends TestCase
         ]);
     }
 
-    public function test_checkout_creates_order_for_product_without_variants(): void
+    public function test_checkout_rejects_cart_product_without_variant_for_stock_tracking(): void
     {
         $user = User::factory()->create();
         $product = Product::create([
@@ -542,16 +554,9 @@ class CheckoutControllerTest extends TestCase
                 'payment_method' => 'cod',
             ])
             ->assertRedirect()
-            ->assertSessionHasNoErrors();
+            ->assertSessionHas('error', 'Sản phẩm trong giỏ chưa có biến thể để kiểm tra tồn kho. Vui lòng xóa và thêm lại sản phẩm.');
 
-        $order = Order::query()->latest('id')->firstOrFail();
-        $this->assertSame('pending', $order->status);
-        $this->assertDatabaseHas('order_items', [
-            'order_id' => $order->id,
-            'product_id' => $product->id,
-            'variant_id' => null,
-            'quantity' => 2,
-        ]);
+        $this->assertDatabaseCount('orders', 0);
     }
 
     public function test_order_numbers_increment_sequentially_for_same_day(): void

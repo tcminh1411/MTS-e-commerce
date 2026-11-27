@@ -62,7 +62,7 @@
                                                     Phân loại đã xóa
                                                 </div>
                                             @endif
-                                            @if ($item->variant_id && ! $item->variant)
+                                            @if (! $item->variant)
                                                 <p class="mt-1 text-xs text-red-600">
                                                     Phân loại không còn khả dụng. Vui lòng xóa sản phẩm khỏi giỏ.
                                                 </p>

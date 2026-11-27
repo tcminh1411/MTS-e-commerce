@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ShippingZone;
 use App\Services\CartService;
 use App\Services\OrderService;
+use App\Services\ProductVariantService;
 use App\Services\VNPayService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -89,7 +90,7 @@ class CheckoutController extends Controller
         return view('shop.checkout.index', compact('checkoutItems', 'isBuyNow', 'subtotal', 'zones', 'user'));
     }
 
-    public function buyNow(Request $request): RedirectResponse
+    public function buyNow(Request $request, ProductVariantService $productVariantService): RedirectResponse
     {
         $data = $request->validate([
             'product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('status', 'active')],
@@ -109,16 +110,26 @@ class CheckoutController extends Controller
             ]);
         }
 
-        $hasVariants = $product->variants()->exists();
         $variantId = $data['variant_id'] ?? null;
+        $variant = null;
 
-        if ($hasVariants && $variantId === null) {
-            throw ValidationException::withMessages([
-                'variant_id' => 'Vui lòng chọn phân loại sản phẩm.',
-            ]);
-        }
+        if ($product->product_type === 'simple') {
+            $variant = $productVariantService->ensureDefaultForSimpleProduct($product);
 
-        if ($hasVariants) {
+            if ($variant->status !== 'active'
+                || ($variantId !== null && (int) $variantId !== $variant->id)
+            ) {
+                throw ValidationException::withMessages([
+                    'variant_id' => 'Phân loại mặc định không còn khả dụng.',
+                ]);
+            }
+        } elseif ($product->variants()->exists()) {
+            if ($variantId === null) {
+                throw ValidationException::withMessages([
+                    'variant_id' => 'Vui lòng chọn phân loại sản phẩm.',
+                ]);
+            }
+
             $variant = $product->variants()
                 ->where('status', 'active')
                 ->whereKey($variantId)
@@ -129,19 +140,21 @@ class CheckoutController extends Controller
                     'variant_id' => 'Phân loại không hợp lệ cho sản phẩm này.',
                 ]);
             }
-
-            if ($variant->stock < $data['quantity']) {
-                throw ValidationException::withMessages([
-                    'variant_id' => $variant->stock === 0
-                        ? 'Phân loại này đã hết hàng.'
-                        : 'Tồn kho không đủ cho số lượng đã chọn.',
-                ]);
-            }
-        } elseif ($variantId !== null) {
+        } else {
             throw ValidationException::withMessages([
-                'variant_id' => 'Sản phẩm không có phân loại này.',
+                'variant_id' => 'Sản phẩm chưa có biến thể để kiểm tra tồn kho.',
             ]);
         }
+
+        if ($variant->stock < $data['quantity']) {
+            throw ValidationException::withMessages([
+                'variant_id' => $variant->stock === 0
+                    ? 'Phân loại này đã hết hàng.'
+                    : 'Tồn kho không đủ cho số lượng đã chọn.',
+            ]);
+        }
+
+        $variantId = $variant->id;
 
         session()->put(self::BUY_NOW_SESSION_KEY, [
             'product_id' => (int) $product->id,
