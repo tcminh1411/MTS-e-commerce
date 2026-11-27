@@ -53,7 +53,6 @@
                     <th class="px-4 py-3 text-left">SKU</th>
                     <th class="px-4 py-3 text-left">Sản phẩm</th>
                     <th class="px-4 py-3 text-center">Tồn</th>
-                    <th class="px-4 py-3 text-center">Ngưỡng</th>
                     <th class="px-4 py-3 text-center">Trạng thái</th>
                 </tr>
             </thead>
@@ -83,9 +82,6 @@
                     </td>
                     <td class="px-4 py-3 text-center font-semibold">
                         {{ $inv->quantity }}
-                    </td>
-                    <td class="px-4 py-3 text-center text-gray-500">
-                        {{ $inv->low_stock_threshold }}
                     </td>
                     <td class="px-4 py-3 text-center">
                         @if ($inv->quantity <= 0) <span class="px-2 py-0.5 rounded text-xs bg-red-100 text-red-700">Hết
